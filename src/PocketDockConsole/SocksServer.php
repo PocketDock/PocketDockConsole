@@ -119,11 +119,13 @@ class SocksServer extends \Thread {
             if(count($stuffArray) == $this->lastLine) {
             } else {
                 for($i = $this->lastLine - 1; $i <= count($stuffArray); $i++){
-                    $line = trim($stuffArray[$i])."\r\n";
-                    if($line === "\r\n") {
+                    if(isset($stuffArray[$i])) {
+                        $line = trim($stuffArray[$i])."\r\n";
+                        if($line === "\r\n") {
 
-                    } else {
-                        $this->send($this->encode($line), $autharray);
+                        } else {
+                            $this->send($this->encode($line), $autharray);
+                        }
                     }
                 }
                 $this->lastLine = count($stuffArray);
