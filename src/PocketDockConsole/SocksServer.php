@@ -30,6 +30,10 @@ class SocksServer extends \Thread {
         $this->loadPaths = array_reverse($loadPaths);
         $this->start(PTHREADS_INHERIT_ALL & ~PTHREADS_INHERIT_CLASSES);
         $this->log("Started SocksServer on " . $this->host . ":" . $this->port);
+        $this->log("Authentication password is: " . $this->password);
+        if($this->password === "PocketDockRules!") {
+            $this->log("You are using the default password! Please change the password in config.yml");
+        }
     }
 
     protected function addDependency(array &$loadPaths, \ReflectionClass $dep){
@@ -104,13 +108,13 @@ class SocksServer extends \Thread {
                         } else {
                             $this->sendSingle($this->encode(TextFormat::toANSI(TextFormat::DARK_RED."[PocketDockConsole] Failed login attempt, this event will be recorded!\r\n")), $c_sock);
                             $this->log(TextFormat::DARK_RED."Failed login attempt from: $ip!");
-                            $tryauths[$c_sock] = "";
+                            @$tryauths[$c_sock] = "";
                         }
                     } else {
                         if(!isset($tryauths[$c_sock])){
-                            $tryauths[$c_sock] = "";
+                            @$tryauths[$c_sock] = "";
                         } else {
-                            $tryauths[$c_sock] .= $data;
+                            @$tryauths[$c_sock] .= $data;
                         }
                     }
                 }
