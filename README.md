@@ -6,7 +6,6 @@ PocketDockConsole -- *Because RCON was so retro*
 - [x] Show the power of both PocketMine (and PHP)
 - [ ] Get people to make more awesome plugins
 - [x] Have some fun
------------------
 
 ##How do I use this awesome plugin?
 1. Download the Phar file from either GitHub releases or the PocketMine Forums
