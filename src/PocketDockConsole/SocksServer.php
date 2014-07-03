@@ -99,22 +99,23 @@ class SocksServer extends \Thread {
                     $data = $this->decode(fread($c_sock, 2048));
                     $this->buffer = $this->buffer.$data;
                 } elseif ($c_sock) {
+                    $ip = stream_socket_get_name($c_sock, true);
                     $data = $this->decode(fread($c_sock, 2048));
                     if($data == "\r") {
-                        if($this->tryAuth($c_sock, $tryauths[$c_sock])) {
+                        if($this->tryAuth($c_sock, $tryauths[$ip])) {
                             array_push($autharray, $c_sock);
                             $this->sendSingle($this->encode(TextFormat::toANSI(TextFormat::DARK_GREEN."[PocketDockConsole] Authenticated! Now accepting commands\r\n")), $c_sock);
                             $this->log(TextFormat::toANSI(TextFormat::DARK_GREEN."Successful login from: $ip!"));
                         } else {
                             $this->sendSingle($this->encode(TextFormat::toANSI(TextFormat::DARK_RED."[PocketDockConsole] Failed login attempt, this event will be recorded!\r\n")), $c_sock);
                             $this->log(TextFormat::DARK_RED."Failed login attempt from: $ip!");
-                            @$tryauths[$c_sock] = "";
+                            $tryauths[$ip] = "";
                         }
                     } else {
-                        if(!isset($tryauths[$c_sock])){
-                            @$tryauths[$c_sock] = "";
+                        if(!isset($tryauths[$ip])){
+                            $tryauths[$ip] = "";
                         } else {
-                            @$tryauths[$c_sock] .= $data;
+                            $tryauths[$ip] .= $data;
                         }
                     }
                 }
@@ -169,22 +170,26 @@ class SocksServer extends \Thread {
     }
 
     public function decode($text) {
-        $length = ord($text[1]) & 127;
-        if ($length == 126) {
-            $encodes = substr($text, 4, 4);
-            $data  = substr($text, 8);
-        } elseif ($length == 127) {
-            $encodes = substr($text, 10, 4);
-            $data  = substr($text, 14);
+        if(isset($text[1])) {
+            $length = ord($text[1]) & 127;
+            if ($length == 126) {
+                $encodes = substr($text, 4, 4);
+                $data  = substr($text, 8);
+            } elseif ($length == 127) {
+                $encodes = substr($text, 10, 4);
+                $data  = substr($text, 14);
+            } else {
+                $encodes = substr($text, 2, 4);
+                $data  = substr($text, 6);
+            }
+            $text = "";
+            for ($i = 0; $i < strlen($data); ++$i) {
+                $text .= $data[$i] ^ $encodes[$i % 4];
+            }
+            return $text;
         } else {
-            $encodes = substr($text, 2, 4);
-            $data  = substr($text, 6);
+            return false;
         }
-        $text = "";
-        for ($i = 0; $i < strlen($data); ++$i) {
-            $text .= $data[$i] ^ $encodes[$i % 4];
-        }
-        return $text;
     }
 
     public function encode($text) {
