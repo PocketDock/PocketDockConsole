@@ -1,0 +1,100 @@
+<!DOCTYPE HTML>
+
+<html>
+
+<head>
+  <title>PocketDockConsole</title>
+  <style>
+    body,
+    html {
+      height: 100%;
+      width: 100%;
+    }
+    body,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-family: "Lato", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-weight: 700;
+    }
+    .food {
+      background-color: rgb(0, 0, 0);
+    }
+    .terminal {
+      border: #000 solid 5px;
+      font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
+      font-size: 10px;
+      color: #f0f0f0;
+      background: #000;
+    }
+    #term-title {
+      height: 13px;
+      border: #000 solid 2px;
+      font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
+      font-size: 12px;
+      color: #99CCFF;
+      background: #000;
+    }
+    #term-startline {
+      height: 13px;
+      border: #000 solid 2px;
+      font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
+      font-size: 12px;
+      color: #f0f0f0;
+      background: #000;
+    }
+  </style>
+</head>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="https://rawgit.com/chjj/term.js/master/src/term.js"></script>
+<script type="text/javascript">
+  var socket = new WebSocket("ws://" + window.location.href.replace("http://", ""));
+
+  socket.onopen = function(evt) {
+    term = new Terminal({
+      cols: 150,
+      rows: 45,
+      screenKeys: true
+    });
+
+    term.on("data", function(data) {
+      var firstText = $('#term-startline').text()
+      if (data == "\r") {
+        $('#term-startline').text("");
+      } else {
+        $('#term-startline').text(firstText + data);
+      }
+      socket.send(data);
+    });
+
+    term.on("title", function(title) {
+      $("#term-title").text(title);
+    });
+
+    term.open(document.getElementById("container-terminal"));
+
+    socket.onmessage = function(msg) {
+      term.write(msg.data);
+    };
+
+    socket.onclose = function(evt) {
+      term.write("Session terminated");
+      term.destroy();
+    };
+
+  };
+</script>
+
+<body class="food">
+  <div id="container-terminal">
+    <div id="term-title">
+    </div>
+  </div>
+  <div id="term-startline">
+  </div>
+</body>
+
+</html>
