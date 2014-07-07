@@ -1,6 +1,6 @@
 name: PocketDockConsole
 main: PocketDockConsole\Main
-version: 0.0.3
+version: 0.0.4
 api: [1.0.0]
 
 load: POSTWORLD
@@ -8,4 +8,20 @@ author: humerusj
 description: A web console that uses WebSockets
 website: https://github.com/Humerus/PocketDockConsole
 commands:
+ consoleclients:
+  aliases: [cc, conclients, showclients]
+  description: List the connected PocketDockConsole clients
+  usage: "Usage: /consoleclients"
+  permission: pocketdockconsole.command.consoleclients
+ killclient:
+  aliases: [kc, killc]
+  description: Kill a certain client from connection
+  usage: "Usage: /killclient <ip:port>"
+  permission: pocketdockconsole.command.killclient
 permissions:
+ pocketdockconsole.command.consoleclients:
+  description: "Allows a player to show the connected console clients"
+  default: op
+ pocketdockconsole.command.killclient:
+  description: "Allows a player to kill a connected console client"
+  default: op
