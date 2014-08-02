@@ -13,6 +13,7 @@ class SocksServer extends \Thread {
     public $null = NULL;
     public $buffer = "";
     public $stuffToSend = "";
+    public $jsonStream = "";
     public $stuffTitle = "";
     public $loadPaths = array();
     public $connectedips = "";
@@ -27,6 +28,7 @@ class SocksServer extends \Thread {
         $this->data         = $html;
         $this->backlog      = $backlog;
         $this->clienttokill = "";
+        $this->sendUpate    = false;
         $loadPaths          = array();
         $this->addDependency($loadPaths, new \ReflectionClass($logger));
         $this->addDependency($loadPaths, new \ReflectionClass($loader));
@@ -152,7 +154,7 @@ class SocksServer extends \Thread {
             $stuffArray = explode("\n", $this->stuffToSend);
             if (count($stuffArray) == $this->lastLine) {
             } else {
-                for ($i = $this->lastLine - 2; $i <= count($stuffArray); $i++) {
+                for ($i = $this->lastLine - 1; $i <= count($stuffArray); $i++) {
                     if (isset($stuffArray[$i])) {
                         $line = trim($stuffArray[$i]) . "\r\n";
                         if ($line === "\r\n") {
@@ -163,6 +165,22 @@ class SocksServer extends \Thread {
                     }
                 }
                 $this->lastLine = count($stuffArray);
+                $this->send($this->encode($this->stuffTitle), $autharray);
+            }
+            $jsonArray = explode("\n", $this->jsonStream);
+            if (count($jsonArray) == $this->lastLineJSON) {
+            } else {
+                for ($i = $this->lastLineJSON - 1; $i <= count($jsonArray); $i++) {
+                    if (isset($jsonArray[$i])) {
+                        $line = trim($jsonArray[$i]) . "\r\n";
+                        if ($line === "\r\n") {
+
+                        } else {
+                            $this->send($this->encode($line), $autharray);
+                        }
+                    }
+                }
+                $this->lastLineJSON = count($jsonArray);
                 $this->send($this->encode($this->stuffTitle), $autharray);
             }
             if ($this->clienttokill !== "") {
@@ -191,6 +209,7 @@ class SocksServer extends \Thread {
 
     public function tryAuth($socket, $password) {
         if ($password === $this->password) {
+            $this->sendUpdate = true;
             return true;
         } else {
             return false;
@@ -269,7 +288,7 @@ class SocksServer extends \Thread {
     }
 
     public function log($data) {
-        $this->logger->info("[PocketDockConsole] " . $data);
+        $this->logger->info("[PDC] " . $data);
     }
 
 }

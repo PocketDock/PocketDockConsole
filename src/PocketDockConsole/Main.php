@@ -67,20 +67,11 @@ class Main extends PluginBase implements Listener {
         $this->rc->updateInfo();
     }
 
-    /**
-    * @param PlayerQuitEvent $event
-    *
-    * @priority HIGH
-    */
     public function PlayerQuitEvent(PlayerQuitEvent $event){
-        $this->rc->updateInfo();
+        $name = $event->getPlayer()->getName();
+        $this->rc->updateInfo($name);
     }
 
-    /**
-    * @param PlayerRespawnEvent $event
-    *
-    * @priority HIGH
-    */
     public function PlayerRespawnEvent(PlayerRespawnEvent $event){
         $this->rc->updateInfo();
     }

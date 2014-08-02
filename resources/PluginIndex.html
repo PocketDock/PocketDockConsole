@@ -140,6 +140,8 @@
                 <li><a onclick="kick('+ "'" + data+ "'" +')">Kick</a></li>\
                 <li><a onclick="ban('+ "'" + data+ "'" +')">Ban</a></li>\
                 <li><a onclick="op('+ "'" + data+ "'" +')">Op</a></li>\
+                <li><a onclick="changeGm('+ "'" + data+ "'" +', 0)">Survival</a></li>\
+                <li><a onclick="changeGm('+ "'" + data+ "'" +', 1)">Creative</a></li>\
               </ul>\
             </div><br>';
             return playerTemplate;
@@ -193,6 +195,10 @@
 
         function unban(user) {
             socket.send(JSON.stringify({unban:{name: user}}));
+        }
+
+        function changeGm(user, mode) {
+            socket.send(JSON.stringify({changegm:{name: user, mode: mode}}));
         }
 
 

@@ -25,16 +25,16 @@ class RunCommand extends PluginTask {
             echo $buffer . "\n";
             $this->getOwner()->getServer()->dispatchCommand(new ConsoleCommandSender, $buffer);
             $this->getOwner()->thread->buffer     = "";
-            $title                                = "\x1b]0;PocketMine-MP " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | RAM " . round((memory_get_usage() / 1024) / 1024, 2) . "/" . round((memory_get_usage(true) / 1024) / 1024, 2) . " MB | U ". round($this->mainInterface->getUploadUsage() / 1024, 2) ." D ". round($this->mainInterface->getDownloadUsage() / 1024, 2) ." kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . "\x07";
-            $this->getOwner()->thread->stuffTitle = $title;
             $this->updateInfo();
         } elseif ($this->isJSON(trim($buffer)) && trim($buffer) != "") {
             $this->parseJSON($buffer);
             $this->getOwner()->thread->buffer     = "";
-            $title                                = "\x1b]0;PocketMine-MP " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | RAM " . round((memory_get_usage() / 1024) / 1024, 2) . "/" . round((memory_get_usage(true) / 1024) / 1024, 2) . " MB | U ". round($this->mainInterface->getUploadUsage() / 1024, 2) ." D ". round($this->mainInterface->getDownloadUsage() / 1024, 2) ." kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . "\x07";
-            $this->getOwner()->thread->stuffTitle = $title;
             $this->updateInfo();
         }
+        if($this->getOwner()->thread->sendUpdate) {
+            $this->updateInfo();
+        }
+        $this->getOwner()->thread->sendUpdate = false;
     }
 
     public function isJSON($string) {
@@ -50,7 +50,6 @@ class RunCommand extends PluginTask {
                 $this->getOwner()->getLogger()->info($data[$keys[0]]['name'] . " is now op!");
                 break;
             case "kick":
-                safe_var_dump($this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name']));
                 if(($player = $this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name'])) instanceof Player){
                     $player->kick();
                     $this->getOwner()->getLogger()->info($data[$keys[0]]['name'] . " has been kicked!");
@@ -61,13 +60,16 @@ class RunCommand extends PluginTask {
                 $this->getOwner()->getLogger()->info($data[$keys[0]]['name'] . " has been banned!");
                 break;
             case "banip":
-                safe_var_dump($this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name']));
                 if(($player = $this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name'])) instanceof Player){
                     $this->getOwner()->getServer()->getIPBans()->addBan($player->getAddress());
                 }
                 break;
             case "unban":
-                $this->getOwner()->getServer()->getNameBans()->remove($data[$keys[0]]['name']);
+                if(preg_match("/^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])$/", $data[$keys[0]]['name'])){
+                    $this->getOwner()->getServer()->getIPBans()->remove($data[$keys[0]]['name']);
+                } else {
+                    $this->getOwner()->getServer()->getNameBans()->remove($data[$keys[0]]['name']);
+                }
                 $this->getOwner()->getLogger()->info($data[$keys[0]]['name'] . " has been unbanned!");
                 break;
             case "deop":
@@ -80,20 +82,31 @@ class RunCommand extends PluginTask {
             case "updateinfo":
                 $this->updateInfo();
                 break;
+            case "changegm":
+                if(($player = $this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name'])) instanceof Player){
+                    $player->setGamemode($data[$keys[0]]['mode']);
+                }
+                break;
         }
     }
 
-    public function updateInfo() {
-        $data = array("players" => $this->sendPlayers(), "bans" => $this->sendNameBans(), "ipbans" => $this->sendIPBans(), "ops" => $this->sendOps());
-        $this->getOwner()->thread->stuffToSend .= json_encode($data) . "\n";
+    public function updateInfo($user = "") {
+        $data = array("players" => $this->sendPlayers($user), "bans" => $this->sendNameBans(), "ipbans" => $this->sendIPBans(), "ops" => $this->sendOps());
+        $this->getOwner()->thread->jsonStream .= json_encode($data) . "\n";
+        $title                                = "\x1b]0;PocketMine-MP " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | RAM " . round((memory_get_usage() / 1024) / 1024, 2) . "/" . round((memory_get_usage(true) / 1024) / 1024, 2) . " MB | U ". round($this->mainInterface->getUploadUsage() / 1024, 2) ." D ". round($this->mainInterface->getDownloadUsage() / 1024, 2) ." kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . "\x07";
+        $this->getOwner()->thread->stuffTitle = $title;
         return true;
     }
 
-    public function sendPlayers() {
+    public function sendPlayers($user) {
         $names = array();
         $players = $this->getOwner()->getServer()->getOnlinePlayers();
         foreach($players as $p) {
             $names[] = $p->getName();
+        }
+        if($user !== "") {
+            $key = array_search($user, $names);
+            unset($names[$key]);
         }
         return $names;
     }

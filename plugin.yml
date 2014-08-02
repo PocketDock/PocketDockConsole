@@ -1,4 +1,5 @@
 name: PocketDockConsole
+prefix: PDC
 main: PocketDockConsole\Main
 version: 0.0.5
 api: [1.0.0]
