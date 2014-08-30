@@ -7,7 +7,7 @@ api: [1.0.0]
 load: POSTWORLD
 author: humerusj
 description: A web console that uses WebSockets
-website: https://github.com/Humerus/PocketDockConsole
+website: https://github.com/PocketDockConsole/PocketDockConsole
 commands:
  consoleclients:
   aliases: [cc, conclients, showclients]
