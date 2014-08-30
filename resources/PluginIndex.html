@@ -4,101 +4,380 @@
 
     <head>
         <title>PocketDockConsole</title>
+        <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+        <script src="//cdn.rawgit.com/chjj/term.js/0b10f6c55d5113d50d0ff94b6c38a46375a5f9a5/src/term.js"></script>
+        <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
         <style>
-            body,
-            html {
-                height: 100%;
-                width: 100%;
-            }
-            body,
-            h1,
-            h2,
-            h3,
-            h4,
-            h5,
-            h6 {
-                font-family: "Lato", "Helvetica Neue", Helvetica, Arial, sans-serif;
-                font-weight: 700;
-            }
-            .food {
-                background-color: rgb(0, 0, 0);
-            }
-            .terminal {
-                border: #000 solid 5px;
+            body {
+                font-size: 15px;
                 font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
-                font-size: 10px;
-                color: #f0f0f0;
-                background: #000;
-            }
-            #term-title {
-                height: 13px;
-                border: #000 solid 2px;
-                font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
-                font-size: 12px;
-                color: #99CCFF;
                 background: #000;
             }
             #term-startline {
-                height: 13px;
-                border: #000 solid 2px;
-                font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
-                font-size: 12px;
                 color: #f0f0f0;
-                background: #000;
+            }
+            #getInfo {
+                background: #fff;
+                color: #000;
+            }
+            #wrapper {
+                padding-left: 250px;
+                transition: all 0.4s ease 0s;
+            }
+            #sidebar-wrapper {
+                margin-left: -250px;
+                left: 250px;
+                width: 250px;
+                background: #fff;
+                position: fixed;
+                height: 100%;
+                overflow-y: auto;
+                z-index: 1000;
+                transition: all 0.4s ease 0s;
+            }
+            #page-content-wrapper {
+                width: 100%;
+            }
+            #term-title {
+                color: #99CCFF;
+            }
+            .sidebar-nav {
+                position: absolute;
+                top: 0;
+                width: 250px;
+                list-style: none;
+                margin: 0;
+                padding: 0;
+            }
+            .sidebar-nav li {
+                line-height: 40px;
+                text-indent: 20px;
+            }
+            .sidebar-nav li a {
+                color: #999999;
+                display: block;
+                text-decoration: none;
+            }
+            .sidebar-nav li a:hover {
+                color: #AAAAAA;
+                background: rgba(255, 255, 255, 0.2);
+                text-decoration: none;
+            }
+            .sidebar-nav li a:active,
+            .sidebar-nav li a:focus {
+                text-decoration: none;
+            }
+            .sidebar-nav > .sidebar-brand {
+                height: 40px;
+                font-size: 18px;
+            }
+            .sidebar-nav > .sidebar-brand a {
+                color: #999999;
+            }
+            .sidebar-nav > .sidebar-brand a:hover {
+                color: #AAAAAAs;
+                background: none;
+            }
+            @media (max-width: 767px) {
+                #wrapper {
+                    padding-left: 0;
+                }
+                #sidebar-wrapper {
+                    left: 0;
+                }
+                #wrapper.active {
+                    position: relative;
+                    left: 250px;
+                }
+                #wrapper.active #sidebar-wrapper {
+                    left: 250px;
+                    width: 250px;
+                    transition: all 0.4s ease 0s;
+                }
+                #menu-toggle {
+                    display: inline-block;
+                }
+                .inset {
+                    padding: 15px;
+                }
+            }
+            .footer {
+                height: auto;
+                width: 100%;
+                background-image: none;
+                background-color: #f8f8f8;
+                background-repeat: repeat;
+                background-attachment: scroll;
+                background-position: 0% 0%;
+                position: fixed;
+                bottom: 0pt;
+                left: 0pt;
+            }
+            .footer_contents {
+                height: auto;
+                width: 100%;
+                margin: auto;
             }
         </style>
     </head>
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-    <script src="https://cdn.rawgit.com/chjj/term.js/0b10f6c55d5113d50d0ff94b6c38a46375a5f9a5/src/term.js"></script>
+
     <script type="text/javascript">
-        var socket = new WebSocket("ws://" + window.location.href.replace("http://", ""));
+        var players = "";
+        var ops = "";
+        var bans = "";
+        var ipbans = "";
+        var data = "";
 
-        socket.onopen = function(evt) {
-            term = new Terminal({
-                cols: 145,
-                rows: 40,
-                screenKeys: true
+        function renderPlayer(data) {
+            var playerTemplate = '\
+            <div class="btn-group">\
+              <button type="button" class="btn btn-lg btn-default dropdown-toggle" data-toggle="dropdown">\
+                ' + data +
+                ' <span class="caret"></span>\
+              </button>\
+              <ul class="dropdown-menu" role="menu">\
+                <li><a onclick="kick('+ "'" + data+ "'" +')">Kick</a></li>\
+                <li><a onclick="ban('+ "'" + data+ "'" +')">Ban</a></li>\
+                <li><a onclick="op('+ "'" + data+ "'" +')">Op</a></li>\
+                <li><a onclick="changeGm('+ "'" + data+ "'" +', 0)">Survival</a></li>\
+                <li><a onclick="changeGm('+ "'" + data+ "'" +', 1)">Creative</a></li>\
+              </ul>\
+            </div><br>';
+            return playerTemplate;
+        }
+
+        function renderOp(data) {
+            var playerTemplate = '\
+            <div class="btn-group pull-right">\
+              <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">\
+                <span class="glyphicon glyphicon-eye-open"></span> <span class="caret"></span>\
+              </button>\
+              <ul class="dropdown-menu" role="menu">\
+                <li><a onclick="deop('+ "'" + data+ "'" +')">Deop</a></li>\
+              </ul>\
+            </div><br>';
+            return playerTemplate;
+        }
+
+        function renderBan(data) {
+            var playerTemplate = '\
+            <div class="btn-group pull-right">\
+              <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">\
+                <span class="glyphicon glyphicon-eye-open"></span> <span class="caret"></span>\
+              </button>\
+              <ul class="dropdown-menu" role="menu">\
+                <li><a onclick="unban('+ "'" + data+ "'" +')">Unban</a></li>\
+              </ul>\
+            </div><br>';
+            return playerTemplate;
+        }
+
+        function op(user) {
+            socket.send(JSON.stringify({op:{name: user}}));
+        }
+
+        function kick(user) {
+            socket.send(JSON.stringify({kick:{name: user}}));
+        }
+
+        function ban(user) {
+            socket.send(JSON.stringify({ban:{name: user}}));
+        }
+
+        function banip(user) {
+            socket.send(JSON.stringify({banip:{name: user}}));
+        }
+
+        function deop(user) {
+            socket.send(JSON.stringify({deop:{name: user}}));
+        }
+
+        function unban(user) {
+            socket.send(JSON.stringify({unban:{name: user}}));
+        }
+
+        function changeGm(user, mode) {
+            socket.send(JSON.stringify({changegm:{name: user, mode: mode}}));
+        }
+
+
+        $(function() {
+            doStuff();
+        });
+
+        function isJSON(text) {
+            if (/^[\],:{}\s]*$/.test(text.replace(/\\["\\\/bfnrtu]/g, '@')
+                .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']')
+                .replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        function parseJSON(msg) {
+            $("#OpsTable > tbody").html("");
+            $("#BansTable > tbody").html("");
+            $("#players").html("");
+            data = JSON.parse(msg.data);
+            players = data['players'];
+            ops = data['ops'];
+            bans = data['bans'].concat(data['ipbans']);
+            players.forEach(function(data, elem) {
+                $("#players").append(renderPlayer(data));
             });
+            ops.forEach(function(data, elem) {
+                $("#OpsTable").find("tbody").append("<tr><td>" + data + renderOp(data) + "</td></tr>");
+            });
+            bans.forEach(function(data, elem) {
+                $("#BansTable").find("tbody").append("<tr><td>" + data + renderBan(data) + "</td></tr>");
+            });
+        }
 
-            term.on("data", function(data) {
-                var firstText = $('#term-startline').text();
-                if (data == "\x7f") {
-                    $('#term-startline').text(firstText.substr(0, firstText.length-1));
-                } else if (data == "\r") {
-                    socket.send(firstText + data);
-                    $('#term-startline').text("");
-                    if (firstText == "stop") {
-                        term.destroy();
-                        $("#term-title").text("Session Terminated");
+        function doStuff() {
+            socket = new WebSocket("ws://" + window.location.href.replace("http://", ""));
+            socket.onopen = function(evt) {
+                term = new Terminal({
+                    cols: 100,
+                    rows: 25,
+                    screenKeys: true
+                });
+
+                term.on("data", function(data) {
+                    var firstText = $('#term-startline').text();
+                    if (data == "\x7f") {
+                        $('#term-startline').text(firstText.substr(0, firstText.length - 1));
+                    } else if (data == "\r") {
+                        socket.send(firstText + data);
+                        $('#term-startline').text("");
+                        if (firstText == "stop") {
+                            term.destroy();
+                            $("#term-title").text("Session Terminated");
+                        }
+                    } else {
+                        $('#term-startline').text(firstText + data);
                     }
-                } else {
-                    $('#term-startline').text(firstText + data);
-                }
-            });
+                });
 
-            term.on("title", function(title) {
-                $("#term-title").text(title);
-            });
+                term.on("title", function(title) {
+                    $("#term-title").text(title);
+                });
 
-            term.open(document.getElementById("container-terminal"));
+                term.open(document.getElementById("container-terminal"));
 
-            socket.onmessage = function(msg) {
-                term.write(msg.data);
+                socket.onmessage = function(msg) {
+                    if (isJSON(msg.data) && msg.data.trim() != "") {
+                        parseJSON(msg);
+                    } else {
+                        term.write(msg.data);
+                    }
+                };
+
+                socket.onclose = function(msg) {
+                    $("#term-title").text("Session Terminated");
+                };
             };
 
-            socket.onclose = function(msg) {
-                $("#term-title").text("Session Terminated");
-            };
-        };
+            socket.onerror = function(data) {
+                alert("Unable to connect to server, please follow the install guide and ensure the server is running");
+            }
+        }
     </script>
 
-    <body class="food">
-        <div id="container-terminal">
-            <div id="term-title">
+    <body>
+        <div id="wrapper">
+            <div id="sidebar-wrapper">
+                <ul class="sidebar-nav">
+                    <li class="sidebar-brand"><a href="">PocketDockConsole</a>
+                    </li>
+                    <li class="lead"><strong><h4>Connected Players</h4><strong></li>
+                    <div id="players" class="text-center">
+
+                    </div>
+                </ul>
+            </div>
+
+            <div id="page-content-manager">
+                <div class="page-content inset">
+                    <div id="container-terminal">
+                        <div id="term-title"></div>
+                    </div>
+                    <div id="term-startline"></div>
+                </div>
             </div>
         </div>
-        <div id="term-startline">
-        </div>
     </body>
+
+    <div class="modal fade" id="getInfo">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+                    <h4 class="modal-title">Server Connection Information</h4>
+                </div>
+                <div class="modal-body">
+                    Server IP:
+                    <input type="text" name="ip" id="ip">
+                    <br>Server Port:
+                    <input type="text" name="port" id="port">
+                </div>
+                <div class="modal-footer">
+                    <a href="#" class="btn btn-primary" id="doStuff" data-dismiss="modal" aria-hidden="true" onclick="doStuff();">Connect to console!</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="listBans">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+                    <h4 class="modal-title">Banned Users</h4>
+                </div>
+                <div class="modal-body table-responsive">
+                    <table class="table table-bordered table-striped table-hover table-condensed lead" id="BansTable">
+                        <thead>
+
+                        </thead>
+                        <tbody>
+
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="listOps">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+                    <h4 class="modal-title">Opped Users</h4>
+                </div>
+                <div class="modal-body table-responsive">
+                    <table class="table table-bordered table-striped table-hover table-condensed lead" id="OpsTable">
+                        <thead>
+
+                        </thead>
+                        <tbody>
+
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+            <div class="footer_contents">
+                <center><a class="btn btn-success" data-toggle="modal" data-target="#listOps">Ops List</a> | <a class="btn btn-success" data-toggle="modal" data-target="#listBans">Ban List</a></center>
+            </div>
+    </div>
 
 </html>
