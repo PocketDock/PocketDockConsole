@@ -1,5 +1,4 @@
 <?php
-
 namespace PocketDockConsole;
 
 use pocketmine\utils\TextFormat;
@@ -16,7 +15,7 @@ class Attachment extends \ThreadedLoggerAttachment implements \LoggerAttachment 
     }
 
     public function log($level, $message) {
-        $this->stream .= $message;
+        $this->stream.= $message;
         $this->thread->stuffToSend = $this->stream;
     }
 
