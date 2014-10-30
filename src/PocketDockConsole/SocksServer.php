@@ -82,7 +82,7 @@ class SocksServer extends \Thread {
                     $socket_new = stream_socket_accept($this->socket);
                     $ip = stream_socket_get_name($socket_new, true);
                     $this->log(TextFormat::toANSI(TextFormat::AQUA . "Connection from: $ip"));
-                    $header = fread($socket_new, 2048);
+                    $header = fread($socket_new, 10240);
 
                     if ($this->isHTTP($header)) {
                         fwrite($socket_new, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" . $this->data);

@@ -19,7 +19,13 @@ class RunCommand extends PluginTask {
 
     public function onRun($currentTick) {
         $buffer = $this->getOwner()->thread->getBuffer();
-        if (substr($buffer, -1) == "\r" && $buffer && !$this->isJSON(trim($buffer))) {
+        if (substr($buffer, 0, 6) == "{JSON}") {
+            $buffer = str_replace("{JSON}", "", $buffer);
+            var_dump($buffer);
+            $this->parseJSON($buffer);
+            $this->getOwner()->thread->buffer = "";
+            $this->updateInfo();
+        } elseif (substr($buffer, -1) == "\r" && $buffer && !$this->isJSON(trim($buffer)) && !strpos($buffer, "{JSON}")) {
             $buffer = trim($buffer);
             echo $buffer . "\n";
             $this->getOwner()->getServer()->dispatchCommand(new ConsoleCommandSender, $buffer);
@@ -45,8 +51,16 @@ class RunCommand extends PluginTask {
         return !preg_match('/[^,:{}\\[\\]0-9.\\-+Eaeflnr-u \\n\\r\\t]/', preg_replace('/"(\\.|[^"\\\\])*"/', '', $string));
     }
 
+    /*public function isJSON($string) {
+        json_decode($string);
+        return (json_last_error() == JSON_ERROR_NONE);
+    }*/
+
     public function parseJSON($string) {
         $data = json_decode($string, true);
+        if($data == NULL) {
+            return false;
+        }
         $keys = array_keys($data);
         switch ($keys[0]) {
             case "op":
@@ -102,6 +116,15 @@ class RunCommand extends PluginTask {
                     $code = str_replace("{newline}", "\n", $data[$keys[0]]['code']);
                     $this->getOwner()->getLogger()->info($file . " has been updated!");
                     file_put_contents($file, $code);
+                }
+            break;
+            case "upload":
+                if ($this->getOwner()->getConfig()->get("editfiles")) {
+                    $file = $data[$keys[0]]['file'];
+                    $code = base64_decode(urldecode(hex2bin($data[$keys[0]]['code'])));
+                    $location = substr($data[$keys[0]]['location'], 0, -1);
+                    $this->getOwner()->getLogger()->info($file . " has been uploaded to " . $location . "!");
+                    file_put_contents($location . $file, $code);
                 }
             break;
         }

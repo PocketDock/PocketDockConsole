@@ -278,13 +278,51 @@
 
         function sendFile(file, contents) {
             contents = contents.replace(/\n/g, "{newline}");
-            console.log(contents);
+            //console.log(contents);
             socket.send(JSON.stringify({
                 update: {
                     file: file,
                     code: contents
                 }
             }));
+        }
+
+        function uploadFile(name, data, location) {
+            newdata = "{JSON}" + JSON.stringify({
+                upload: {
+                    file: name,
+                    code: data,
+                    location: location
+                }
+            });
+            console.log(newdata);
+            socket.send(newdata);
+        }
+
+        function toHex(str) {
+            var hex = '';
+            for (var i = 0; i < str.length; i++) {
+                hex += '' + str.charCodeAt(i).toString(16);
+            }
+            return hex;
+        }
+
+        function getFileContents() {
+            file = new FileReader();
+            file.onload = function(data) {
+                name = $('#files')[0].files[0].name;
+                code = data.target.result;
+                array = code.split(",");
+                code = array[1];
+                uploadFile(name, encodeURIComponent(code.replace("AAA", "ZZZ")), $("#fileUploadLocation").val());
+                oldTitle = $("#uploadTitle").text();
+                newTitle = $("#uploadTitle").text("File uploaded!");
+                setTimeout(function() {
+                    $("#uploadTitle").text(oldTitle);
+                }, 3000);
+            };
+            //file.readAsText($('#files')[0].files[0]);
+            file.readAsDataURL($('#files')[0].files[0]);
         }
 
         $(function() {
@@ -325,8 +363,13 @@
             if (data["type"] == "files") {
                 $("#FilesTable > tbody").html("");
                 data["files"].forEach(function(data, elem) {
-                    $("#FilesTable").find("tbody").append("<tr><td>" + data.trim() + renderFile(data.trim()) + "</td></tr>");
+                    if (data.substr(-1) != ".") {
+                        $("#FilesTable").find("tbody").append("<tr><td>" + data.trim() + renderFile(data.trim()) + "</td></tr>");
+                    } else if (data.substr(-2) != "..") {
+                        $("#fileUploadLocation").append('<option value="' + data + '">' + data + '</option>');
+                    }
                 });
+                filesList = data['files'];
             }
             if (data["type"] == "data") {
                 $("#OpsTable > tbody").html("");
@@ -388,7 +431,7 @@
                 term.open(document.getElementById("container-terminal"));
 
                 socket.onmessage = function(msg) {
-                    console.log(msg);
+                    //console.log(msg);
                     if (isJSON(msg.data.trim()) && msg.data.trim() != "") {
                         parseJSON(msg);
                     } else {
@@ -527,6 +570,7 @@
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
                     <h4 class="modal-title">Files:</h4>
+                    <a class="btn btn-primary" data-toggle="modal" data-target="#uploadDialog">Upload a File</a>
                 </div>
                 <div class="modal-body table-responsive">
                     <table class="table table-bordered table-striped table-hover table-condensed" id="FilesTable">
@@ -543,6 +587,27 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="uploadDialog">
+        <div class="modal-dialog" id="ListFilesDialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+                    <h4 class="modal-title" id="uploadTitle">Upload:</h4>
+                </div>
+                <div class="modal-body">
+                    <label for="uploadlocation">Upload Location?</lable>
+                    <select name="uploadLocation" id="fileUploadLocation">
+                    </select>
+                    <input type="file" id="files" name="files" />
+                    <a onclick="getFileContents();" class="btn btn-primary">Upload!</a>
+                </div>
+                <div class="modal-footer">
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <div class="modal fade" id="aceModal">
         <div class="modal-dialog" id="aceModalDialog">

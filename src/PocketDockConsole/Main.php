@@ -27,8 +27,8 @@ class Main extends PluginBase implements Listener {
         $this->rc = new RunCommand($this);
         $this->getServer()->getScheduler()->scheduleRepeatingTask($this->rc, 1);
         $this->lastBufferLine = "";
-        $attachment = new Attachment($this->thread);
-        $this->getServer()->getLogger()->addAttachment($attachment);
+        $this->attachment = new Attachment($this->thread);
+        $this->getServer()->getLogger()->addAttachment($this->attachment);
     }
 
     public function onCommand(CommandSender $sender, Command $command, $label, array $args) {
@@ -79,7 +79,7 @@ class Main extends PluginBase implements Listener {
     public function getFiles($dir) {
         $objects = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir));
         foreach ($objects as $name => $object) {
-            if (!strpos($name, "bin") && (substr($name, -1) !== ".")) {
+            if (!strpos($name, "bin")) {
                 $names[] = $name;
             }
         }
