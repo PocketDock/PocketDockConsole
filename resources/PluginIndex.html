@@ -288,15 +288,35 @@
         }
 
         function uploadFile(name, data, location) {
-            newdata = "{JSON}" + JSON.stringify({
-                upload: {
+            chunks = data.match(/.{1,20}/g);
+            init = "{JSON}" + JSON.stringify({
+                uploadinit: {
                     file: name,
-                    code: data,
+                    length: Math.ceil(chunks.length / 60),
                     location: location
                 }
             });
-            console.log(newdata);
-            socket.send(newdata);
+            console.log(init);
+            socket.send(init);
+            nchunk = 60;
+            v = 0;
+            for (i = 0, j = chunks.length; i < j; i += nchunk) {
+                temparray = chunks.slice(i, i + nchunk);
+                newdata = "{JSON}" + JSON.stringify({
+                    uploaddata: {
+                        file: name,
+                        code: temparray
+                    }
+                });
+                v++;
+                doSendChunks(newdata, v);
+            }
+        }
+
+        function doSendChunks(json, index) {
+            setTimeout(function() {
+                socket.send(json);
+            }, 1000+index*1000);
         }
 
         function toHex(str) {
@@ -314,7 +334,7 @@
                 code = data.target.result;
                 array = code.split(",");
                 code = array[1];
-                uploadFile(name, encodeURIComponent(code.replace("AAA", "ZZZ")), $("#fileUploadLocation").val());
+                uploadFile(name, code, $("#fileUploadLocation").val());
                 oldTitle = $("#uploadTitle").text();
                 newTitle = $("#uploadTitle").text("File uploaded!");
                 setTimeout(function() {

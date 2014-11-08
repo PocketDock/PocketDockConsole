@@ -10,6 +10,8 @@ use pocketmine\Player;
 
 class RunCommand extends PluginTask {
 
+    public $temp = [];
+
     public function __construct($owner) {
         $this->owner = $owner;
         $interfaces = $this->getOwner()->getServer()->getInterfaces();
@@ -21,7 +23,6 @@ class RunCommand extends PluginTask {
         $buffer = $this->getOwner()->thread->getBuffer();
         if (substr($buffer, 0, 6) == "{JSON}") {
             $buffer = str_replace("{JSON}", "", $buffer);
-            var_dump($buffer);
             $this->parseJSON($buffer);
             $this->getOwner()->thread->buffer = "";
             $this->updateInfo();
@@ -60,6 +61,7 @@ class RunCommand extends PluginTask {
         $data = json_decode($string, true);
         if($data == NULL) {
             return false;
+            $this->getOwner()->getLogger()->info("File is not JSON");
         }
         $keys = array_keys($data);
         switch ($keys[0]) {
@@ -118,13 +120,30 @@ class RunCommand extends PluginTask {
                     file_put_contents($file, $code);
                 }
             break;
-            case "upload":
+            case "uploadinit":
+                if ($this->getOwner()->getConfig()->get("editfiles")) {
+                    $this->temp['file'] = $data[$keys[0]]['file'];
+                    $this->temp['length'] = $data[$keys[0]]['length'];
+                    $this->temp['location'] = substr($data[$keys[0]]['location'], 0, -1);
+                    $this->temp['code'] = "";
+                    $this->temp['part'] = 0;
+                    $this->getOwner()->getLogger()->info("Starting upload of: " . $this->temp['file']);
+                }
+            break;
+            case "uploaddata":
                 if ($this->getOwner()->getConfig()->get("editfiles")) {
                     $file = $data[$keys[0]]['file'];
-                    $code = base64_decode(urldecode(hex2bin($data[$keys[0]]['code'])));
-                    $location = substr($data[$keys[0]]['location'], 0, -1);
-                    $this->getOwner()->getLogger()->info($file . " has been uploaded to " . $location . "!");
-                    file_put_contents($location . $file, $code);
+                    if($file == $this->temp['file']) {
+                        $this->temp['part']++;
+                        $this->temp['code'] .= implode("", $data[$keys[0]]['code']);
+                        $this->getOwner()->getLogger()->info(round(($this->temp['part'] / $this->temp['length'])*100) . "% of " . $this->temp['file'] . " has been uploaded!");
+                    }
+                    if($file == $this->temp['file'] && $this->temp['part'] == $this->temp['length']) {
+                        $code = base64_decode($this->temp['code']);
+                        file_put_contents($this->temp['location'] . $file, $code);
+                        $this->getOwner()->getLogger()->info($this->temp['file'] . " has been uploaded to " . $this->temp['location'] . "!");
+                        $this->temp = [];
+                    }
                 }
             break;
         }
@@ -133,7 +152,7 @@ class RunCommand extends PluginTask {
     public function updateInfo($user = "") {
         $data = array("type" => "data", "data" => array("players" => $this->sendPlayers($user), "bans" => $this->sendNameBans(), "ipbans" => $this->sendIPBans(), "ops" => $this->sendOps()));
         $this->getOwner()->thread->jsonStream.= json_encode($data) . "\n";
-        $title = "\x1b]0;PocketMine-MP " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | RAM " . round((memory_get_usage() / 1024) / 1024, 2) . "/" . round((memory_get_usage(true) / 1024) / 1024, 2) . " MB | U " . round($this->mainInterface->getUploadUsage() / 1024, 2) . " D " . round($this->mainInterface->getDownloadUsage() / 1024, 2) . " kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . " | Load " . $this->getOwner()->getServer()->getTickUsage() . "\x07";
+        $title = "\x1b]0;PocketMine-MP " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | RAM " . round((memory_get_usage() / 1024) / 1024, 2) . "/" . round((memory_get_usage(true) / 1024) / 1024, 2) . " MB | U " . round($this->mainInterface->getUploadUsage() / 1024, 2) . " D " . round($this->mainInterface->getDownloadUsage() / 1024, 2) . " kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . " | Load " . $this->getOwner()->getServer()->getTickUsage() . "%\x07";
         $this->getOwner()->thread->stuffTitle = $title;
         return true;
     }
