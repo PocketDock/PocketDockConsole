@@ -1,5 +1,4 @@
 <?php
-
 namespace PocketDockConsole;
 
 use pocketmine\utils\TextFormat;
@@ -11,6 +10,8 @@ use pocketmine\Player;
 
 class RunCommand extends PluginTask {
 
+    public $temp = [];
+
     public function __construct($owner) {
         $this->owner = $owner;
         $interfaces = $this->getOwner()->getServer()->getInterfaces();
@@ -20,80 +21,138 @@ class RunCommand extends PluginTask {
 
     public function onRun($currentTick) {
         $buffer = $this->getOwner()->thread->getBuffer();
-        if (substr($buffer, -1) == "\r" && $buffer && !$this->isJSON(trim($buffer))) {
+        if (substr($buffer, 0, 6) == "{JSON}") {
+            $buffer = str_replace("{JSON}", "", $buffer);
+            $this->parseJSON($buffer);
+            $this->getOwner()->thread->buffer = "";
+            $this->updateInfo();
+        } elseif (substr($buffer, -1) == "\r" && $buffer && !$this->isJSON(trim($buffer)) && !strpos($buffer, "{JSON}")) {
             $buffer = trim($buffer);
             echo $buffer . "\n";
             $this->getOwner()->getServer()->dispatchCommand(new ConsoleCommandSender, $buffer);
-            $this->getOwner()->thread->buffer     = "";
+            $this->getOwner()->thread->buffer = "";
             $this->updateInfo();
         } elseif ($this->isJSON(trim($buffer)) && trim($buffer) != "") {
             $this->parseJSON($buffer);
-            $this->getOwner()->thread->buffer     = "";
+            $this->getOwner()->thread->buffer = "";
             $this->updateInfo();
         }
-        if($this->getOwner()->thread->sendUpdate) {
+        if ($this->getOwner()->thread->sendUpdate) {
             $this->updateInfo();
+            $this->getOwner()->sendFiles();
         }
         $this->getOwner()->thread->sendUpdate = false;
+        if (substr($currentTick, -2) == 20) {
+            $this->updateInfo();
+            $this->getOwner()->thread->sendUpdate = false;
+        }
     }
 
     public function isJSON($string) {
         return !preg_match('/[^,:{}\\[\\]0-9.\\-+Eaeflnr-u \\n\\r\\t]/', preg_replace('/"(\\.|[^"\\\\])*"/', '', $string));
     }
 
+    /*public function isJSON($string) {
+        json_decode($string);
+        return (json_last_error() == JSON_ERROR_NONE);
+    }*/
+
     public function parseJSON($string) {
         $data = json_decode($string, true);
+        if($data == NULL) {
+            return false;
+            $this->getOwner()->getLogger()->info("File is not JSON");
+        }
         $keys = array_keys($data);
-        switch($keys[0]) {
+        switch ($keys[0]) {
             case "op":
                 $this->getOwner()->getServer()->addOp($data[$keys[0]]['name']);
                 $this->getOwner()->getLogger()->info($data[$keys[0]]['name'] . " is now op!");
-                break;
+            break;
             case "kick":
-                if(($player = $this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name'])) instanceof Player){
+                if (($player = $this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name'])) instanceof Player) {
                     $player->kick();
                     $this->getOwner()->getLogger()->info($data[$keys[0]]['name'] . " has been kicked!");
                 }
-                break;
+            break;
             case "ban":
                 $this->getOwner()->getServer()->getNameBans()->addBan($data[$keys[0]]['name']);
                 $this->getOwner()->getLogger()->info($data[$keys[0]]['name'] . " has been banned!");
-                break;
+            break;
             case "banip":
-                if(($player = $this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name'])) instanceof Player){
+                if (($player = $this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name'])) instanceof Player) {
                     $this->getOwner()->getServer()->getIPBans()->addBan($player->getAddress());
                 }
-                break;
+            break;
             case "unban":
-                if(preg_match("/^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])$/", $data[$keys[0]]['name'])){
+                if (preg_match("/^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\.([01]?\\d\\d?|2[0-4]\\d|25[0-5])$/", $data[$keys[0]]['name'])) {
                     $this->getOwner()->getServer()->getIPBans()->remove($data[$keys[0]]['name']);
                 } else {
                     $this->getOwner()->getServer()->getNameBans()->remove($data[$keys[0]]['name']);
                 }
                 $this->getOwner()->getLogger()->info($data[$keys[0]]['name'] . " has been unbanned!");
-                break;
+            break;
             case "deop":
                 $this->getOwner()->getServer()->removeOp($data[$keys[0]]['name']);
                 $this->getOwner()->getLogger()->info($data[$keys[0]]['name'] . " is no longer op!");
-                break;
+            break;
             case "unbanip":
                 $this->getOwner()->getServer()->getIPBans()->remove($data[$keys[0]]['ip']);
-                break;
+            break;
             case "updateinfo":
                 $this->updateInfo();
-                break;
+            break;
             case "changegm":
-                if(($player = $this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name'])) instanceof Player){
+                if (($player = $this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name'])) instanceof Player) {
                     $player->setGamemode($data[$keys[0]]['mode']);
                 }
-                break;
+            break;
+            case "getCode":
+                $code = file_get_contents($data[$keys[0]]['file']);
+                $data = array("type" => "code", "code" => $code);
+                $this->getOwner()->thread->jsonStream.= json_encode($data) . "\n";
+            break;
+            case "update":
+                if ($this->getOwner()->getConfig()->get("editfiles")) {
+                    $file = $data[$keys[0]]['file'];
+                    $code = str_replace("{newline}", "\n", $data[$keys[0]]['code']);
+                    $this->getOwner()->getLogger()->info($file . " has been updated!");
+                    file_put_contents($file, $code);
+                }
+            break;
+            case "uploadinit":
+                if ($this->getOwner()->getConfig()->get("editfiles")) {
+                    $this->temp['file'] = $data[$keys[0]]['file'];
+                    $this->temp['length'] = $data[$keys[0]]['length'];
+                    $this->temp['location'] = substr($data[$keys[0]]['location'], 0, -1);
+                    $this->temp['code'] = "";
+                    $this->temp['part'] = 0;
+                    $this->getOwner()->getLogger()->info("Starting upload of: " . $this->temp['file']);
+                }
+            break;
+            case "uploaddata":
+                if ($this->getOwner()->getConfig()->get("editfiles")) {
+                    $file = $data[$keys[0]]['file'];
+                    if($file == $this->temp['file']) {
+                        $this->temp['part']++;
+                        $this->temp['code'] .= implode("", $data[$keys[0]]['code']);
+                        $this->getOwner()->getLogger()->info(round(($this->temp['part'] / $this->temp['length'])*100) . "% of " . $this->temp['file'] . " has been uploaded!");
+                    }
+                    if($file == $this->temp['file'] && $this->temp['part'] == $this->temp['length']) {
+                        $code = base64_decode($this->temp['code']);
+                        file_put_contents($this->temp['location'] . $file, $code);
+                        $this->getOwner()->getLogger()->info($this->temp['file'] . " has been uploaded to " . $this->temp['location'] . "!");
+                        $this->temp = [];
+                    }
+                }
+            break;
         }
     }
 
     public function updateInfo($user = "") {
-        $data = array("players" => $this->sendPlayers($user), "bans" => $this->sendNameBans(), "ipbans" => $this->sendIPBans(), "ops" => $this->sendOps());
-        $this->getOwner()->thread->jsonStream .= json_encode($data) . "\n";
-        $title                                = "\x1b]0;PocketMine-MP " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | RAM " . round((memory_get_usage() / 1024) / 1024, 2) . "/" . round((memory_get_usage(true) / 1024) / 1024, 2) . " MB | U ". round($this->mainInterface->getUploadUsage() / 1024, 2) ." D ". round($this->mainInterface->getDownloadUsage() / 1024, 2) ." kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . "\x07";
+        $data = array("type" => "data", "data" => array("players" => $this->sendPlayers($user), "bans" => $this->sendNameBans(), "ipbans" => $this->sendIPBans(), "ops" => $this->sendOps()));
+        $this->getOwner()->thread->jsonStream.= json_encode($data) . "\n";
+        $title = "\x1b]0;PocketMine-MP " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | RAM " . round((memory_get_usage() / 1024) / 1024, 2) . "/" . round((memory_get_usage(true) / 1024) / 1024, 2) . " MB | U " . round($this->mainInterface->getUploadUsage() / 1024, 2) . " D " . round($this->mainInterface->getDownloadUsage() / 1024, 2) . " kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . " | Load " . $this->getOwner()->getServer()->getTickUsage() . "%\x07";
         $this->getOwner()->thread->stuffTitle = $title;
         return true;
     }
@@ -101,10 +160,10 @@ class RunCommand extends PluginTask {
     public function sendPlayers($user) {
         $names = array();
         $players = $this->getOwner()->getServer()->getOnlinePlayers();
-        foreach($players as $p) {
+        foreach ($players as $p) {
             $names[] = $p->getName();
         }
-        if($user !== "") {
+        if ($user !== "") {
             $key = array_search($user, $names);
             unset($names[$key]);
         }
@@ -115,7 +174,7 @@ class RunCommand extends PluginTask {
         $barray = array();
         $bans = $this->getOwner()->getServer()->getNameBans();
         $bans = $bans->getEntries();
-        foreach($bans as $ban) {
+        foreach ($bans as $ban) {
             $barray[] = $ban->getName();
         }
         return $barray;
@@ -125,7 +184,7 @@ class RunCommand extends PluginTask {
         $barray = array();
         $bans = $this->getOwner()->getServer()->getIPBans();
         $bans = $bans->getEntries();
-        foreach($bans as $ban) {
+        foreach ($bans as $ban) {
             $barray[] = $ban->getName();
         }
         return $barray;
@@ -135,7 +194,7 @@ class RunCommand extends PluginTask {
         $oarray = array();
         $ops = $this->getOwner()->getServer()->getOps();
         $ops = $ops->getAll(true);
-        foreach($ops as $op) {
+        foreach ($ops as $op) {
             $oarray[] = $op;
         }
         return $oarray;

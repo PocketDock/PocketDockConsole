@@ -1,5 +1,4 @@
 <?php
-
 namespace PocketDockConsole;
 
 use pocketmine\plugin\PluginBase;
@@ -9,7 +8,7 @@ use pocketmine\command\ConsoleCommandSender;
 use pocketmine\command\CommandSender;
 use pocketmine\scheduler\PluginTask;
 use pocketmine\event\Listener;
-use pocketmine\event\player\PlayerJoinEvent;
+use pocketmine\event\player\PlayerLoginEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\event\player\PlayerRespawnEvent;
 
@@ -28,17 +27,17 @@ class Main extends PluginBase implements Listener {
         $this->rc = new RunCommand($this);
         $this->getServer()->getScheduler()->scheduleRepeatingTask($this->rc, 1);
         $this->lastBufferLine = "";
-        $attachment           = new Attachment($this->thread);
-        $this->getServer()->getLogger()->addAttachment($attachment);
+        $this->attachment = new Attachment($this->thread);
+        $this->getServer()->getLogger()->addAttachment($this->attachment);
     }
 
     public function onCommand(CommandSender $sender, Command $command, $label, array $args) {
         switch ($command->getName()) {
             case "consoleclients":
                 if (!$sender->hasPermission("pocketdockconsole.command.consoleclients")) {
-        			$sender->sendMessage(TextFormat::RED . "[PocketDockConsole] Get some permissions...");
-        			return true;
-        		}
+                    $sender->sendMessage(TextFormat::RED . "[PocketDockConsole] Get some permissions...");
+                    return true;
+                }
                 $authedclients = explode(";", $this->thread->connectedips);
                 if (count($authedclients) < 2) {
                     $sender->sendMessage("[PocketDockConsole] There are no connected clients");
@@ -63,17 +62,35 @@ class Main extends PluginBase implements Listener {
         }
     }
 
-    public function PlayerJoinEvent(PlayerJoinEvent $event){
+    public function PlayerLoginEvent(PlayerLoginEvent $event) {
         $this->rc->updateInfo();
+        $this->sendFiles();
     }
 
-    public function PlayerQuitEvent(PlayerQuitEvent $event){
+    public function PlayerQuitEvent(PlayerQuitEvent $event) {
         $name = $event->getPlayer()->getName();
         $this->rc->updateInfo($name);
     }
 
-    public function PlayerRespawnEvent(PlayerRespawnEvent $event){
+    public function PlayerRespawnEvent(PlayerRespawnEvent $event) {
         $this->rc->updateInfo();
+    }
+
+    public function getFiles($dir) {
+        $objects = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir));
+        foreach ($objects as $name => $object) {
+            if (!strpos($name, "bin")) {
+                $names[] = $name;
+            }
+        }
+        return $names;
+    }
+
+    public function sendFiles() {
+        if($this->getConfig()->get("viewfiles")) {
+            $this->thread->jsonStream.= json_encode(array("type" => "files", "files" => $this->getFiles(realpath($this->getServer()->getDataPath())))) . "\n";
+        }
+        return false;
     }
 
     public function onDisable() {

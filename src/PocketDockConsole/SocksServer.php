@@ -1,5 +1,4 @@
 <?php
-
 namespace PocketDockConsole;
 
 use pocketmine\utils\TextFormat;
@@ -19,17 +18,17 @@ class SocksServer extends \Thread {
     public $connectedips = "";
 
     public function __construct($host, $port, $logger, $loader, $password, $html, $backlog) {
-        $this->host         = $host;
-        $this->port         = $port;
-        $this->stop         = false;
-        $this->password     = $password;
-        $this->logger       = $logger;
-        $this->loader       = $loader;
-        $this->data         = $html;
-        $this->backlog      = $backlog;
+        $this->host = $host;
+        $this->port = $port;
+        $this->stop = false;
+        $this->password = $password;
+        $this->logger = $logger;
+        $this->loader = $loader;
+        $this->data = $html;
+        $this->backlog = $backlog;
         $this->clienttokill = "";
-        $this->sendUpate    = false;
-        $loadPaths          = array();
+        $this->sendUpate = false;
+        $loadPaths = array();
         $this->addDependency($loadPaths, new \ReflectionClass($logger));
         $this->addDependency($loadPaths, new \ReflectionClass($loader));
         $this->loadPaths = array_reverse($loadPaths);
@@ -41,9 +40,9 @@ class SocksServer extends \Thread {
         }
     }
 
-    protected function addDependency(array &$loadPaths, \ReflectionClass $dep) {
+    protected function addDependency(array & $loadPaths, \ReflectionClass $dep) {
         if ($dep->getFileName() !== false) {
-            $loadPaths[$dep->getName()] = $dep->getFileName();
+            $loadPaths[$dep->getName() ] = $dep->getFileName();
         }
 
         if ($dep->getParentClass() instanceof \ReflectionClass) {
@@ -64,17 +63,15 @@ class SocksServer extends \Thread {
     }
 
     public function run() {
-        $socket       = stream_socket_server("tcp://$this->host:$this->port", $errno, $errorMessage);
+        $socket = stream_socket_server("tcp://$this->host:$this->port", $errno, $errorMessage);
         $this->socket = $socket;
         foreach ($this->loadPaths as $name => $path) {
             if (!class_exists($name, false) and !class_exists($name, false)) {
-                require($path);
+                require ($path);
             }
         }
         $this->loader->register();
-        $clients   = array(
-            $this->socket
-        );
+        $clients = array($this->socket);
         $autharray = array();
         while ($this->stop === false) {
             $changed = $clients;
@@ -83,34 +80,32 @@ class SocksServer extends \Thread {
             foreach ($changed as $c_sock) {
                 if ($c_sock == $this->socket) {
                     $socket_new = stream_socket_accept($this->socket);
-                    $ip         = stream_socket_get_name($socket_new, true);
+                    $ip = stream_socket_get_name($socket_new, true);
                     $this->log(TextFormat::toANSI(TextFormat::AQUA . "Connection from: $ip"));
-                    $header = fread($socket_new, 2048);
+                    $header = fread($socket_new, 10240);
 
                     if ($this->isHTTP($header)) {
                         fwrite($socket_new, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" . $this->data);
                         fclose($socket_new);
                     } else {
                         $this->startConn($header, $socket_new, $this->host, $this->port);
-                        $response = $this->encode(TextFormat::toANSI(TextFormat::AQUA . "[PocketDockConsole] " . json_encode(array(
-                            'info' => $ip . ' connected'
-                        )) . "\r\n"));
+                        $response = $this->encode(TextFormat::toANSI(TextFormat::AQUA . "[PocketDockConsole] " . json_encode(array('info' => $ip . ' connected')) . "\r\n"));
                         $this->sendSingle($response, $socket_new);
                         $this->sendSingle($this->encode(TextFormat::toANSI(TextFormat::YELLOW . "[PocketDockConsole] Please authenticate $ip. Type your password and press enter.\r\n")), $socket_new);
                         array_push($clients, $socket_new);
-                        $this->connectedips .= stream_socket_get_name($socket_new, true) . ";";
+                        $this->connectedips.= stream_socket_get_name($socket_new, true) . ";";
                     }
                 } elseif (in_array($c_sock, $autharray)) {
                     $sock_data = fread($c_sock, 2048);
                     if ($sock_data == "") {
                         $iparray = explode(";", $this->connectedips);
-                        unset($iparray[array_search(stream_socket_get_name($c_sock, true), $iparray)]);
+                        unset($iparray[array_search(stream_socket_get_name($c_sock, true), $iparray) ]);
                         $this->connectedips = implode(";", $iparray);
                         fclose($c_sock);
-                        unset($autharray[array_search($c_sock, $autharray)]);
-                        unset($clients[array_search($c_sock, $clients)]);
+                        unset($autharray[array_search($c_sock, $autharray) ]);
+                        unset($clients[array_search($c_sock, $clients) ]);
                     }
-                    $data         = $this->decode($sock_data);
+                    $data = $this->decode($sock_data);
                     $this->buffer = $this->buffer . $data;
                     if (substr($this->buffer, -1) == "\r") {
                         $this->send($this->encode(trim($this->buffer) . "\r\n"), $autharray);
@@ -119,11 +114,11 @@ class SocksServer extends \Thread {
                     $sock_data = fread($c_sock, 2048);
                     if ($sock_data == "") {
                         $iparray = explode(";", $this->connectedips);
-                        unset($iparray[array_search(stream_socket_get_name($c_sock, true), $iparray)]);
+                        unset($iparray[array_search(stream_socket_get_name($c_sock, true), $iparray) ]);
                         $this->connectedips = implode(";", $iparray);
                         fclose($c_sock);
-                        unset($autharray[array_search($c_sock, $autharray)]);
-                        unset($clients[array_search($c_sock, $clients)]);
+                        unset($autharray[array_search($c_sock, $autharray) ]);
+                        unset($clients[array_search($c_sock, $clients) ]);
                     }
                     $data = $this->decode($sock_data);
                     if (strpos($data, "\r")) {
@@ -132,7 +127,7 @@ class SocksServer extends \Thread {
                             $this->sendSingle($this->encode(TextFormat::toANSI(TextFormat::DARK_GREEN . "[PocketDockConsole] Authenticated! Now accepting commands\r\n")), $c_sock);
                             $stuffArray = explode("\n", $this->stuffToSend);
                             $stuffArray = array_reverse($stuffArray);
-                            for ($i = $this->backlog; $i >= 0; $i--) {
+                            for ($i = $this->backlog;$i >= 0;$i--) {
                                 if (isset($stuffArray[$i])) {
                                     $line = trim($stuffArray[$i]) . "\r\n";
                                     if ($line === "\r\n") {
@@ -154,7 +149,7 @@ class SocksServer extends \Thread {
             $stuffArray = explode("\n", $this->stuffToSend);
             if (count($stuffArray) == $this->lastLine) {
             } else {
-                for ($i = $this->lastLine - 1; $i <= count($stuffArray); $i++) {
+                for ($i = $this->lastLine - 1;$i <= count($stuffArray);$i++) {
                     if (isset($stuffArray[$i])) {
                         $line = trim($stuffArray[$i]) . "\r\n";
                         if ($line === "\r\n") {
@@ -170,7 +165,7 @@ class SocksServer extends \Thread {
             $jsonArray = explode("\n", $this->jsonStream);
             if (count($jsonArray) == $this->lastLineJSON) {
             } else {
-                for ($i = $this->lastLineJSON - 1; $i <= count($jsonArray); $i++) {
+                for ($i = $this->lastLineJSON - 1;$i <= count($jsonArray);$i++) {
                     if (isset($jsonArray[$i])) {
                         $line = trim($jsonArray[$i]) . "\r\n";
                         if ($line === "\r\n") {
@@ -188,11 +183,11 @@ class SocksServer extends \Thread {
                     $ip = stream_socket_get_name($authed, true);
                     if ($ip == $this->clienttokill) {
                         $iparray = explode(";", $this->connectedips);
-                        unset($iparray[array_search($ip, $iparray)]);
+                        unset($iparray[array_search($ip, $iparray) ]);
                         $this->connectedips = implode(";", $iparray);
                         fclose($authed);
-                        unset($autharray[array_search($authed, $autharray)]);
-                        unset($clients[array_search($authed, $clients)]);
+                        unset($autharray[array_search($authed, $autharray) ]);
+                        unset($clients[array_search($authed, $clients) ]);
                         $this->clienttokill = "";
                     }
                 }
@@ -241,17 +236,17 @@ class SocksServer extends \Thread {
             $length = ord($text[1]) & 127;
             if ($length == 126) {
                 $encodes = substr($text, 4, 4);
-                $data    = substr($text, 8);
+                $data = substr($text, 8);
             } elseif ($length == 127) {
                 $encodes = substr($text, 10, 4);
-                $data    = substr($text, 14);
+                $data = substr($text, 14);
             } else {
                 $encodes = substr($text, 2, 4);
-                $data    = substr($text, 6);
+                $data = substr($text, 6);
             }
             $text = "";
-            for ($i = 0; $i < strlen($data); ++$i) {
-                $text .= $data[$i] ^ $encodes[$i % 4];
+            for ($i = 0;$i < strlen($data);++$i) {
+                $text.= $data[$i] ^ $encodes[$i % 4];
             }
             return $text;
         } else {
@@ -260,20 +255,17 @@ class SocksServer extends \Thread {
     }
 
     public function encode($text) {
-        $b1     = 0x80 | (0x1 & 0x0f);
+        $b1 = 0x80 | (0x1 & 0x0f);
         $length = strlen($text);
-        if ($length <= 125)
-            $header = pack('CC', $b1, $length);
-        elseif ($length > 125 && $length < 65536)
-            $header = pack('CCn', $b1, 126, $length);
-        elseif ($length >= 65536)
-            $header = pack('CCNN', $b1, 127, $length);
+        if ($length <= 125) $header = pack('CC', $b1, $length);
+        elseif ($length > 125 && $length < 65536) $header = pack('CCn', $b1, 126, $length);
+        elseif ($length >= 65536) $header = pack('CCNN', $b1, 127, $length);
         return $header . $text;
     }
 
     public function startConn($receved_header, $client_conn, $host, $port) {
         $headers = array();
-        $lines   = preg_split("/\r\n/", $receved_header);
+        $lines = preg_split("/\r\n/", $receved_header);
         foreach ($lines as $line) {
             $line = chop($line);
             if (preg_match('/\A(\S+): (.*)\z/', $line, $matches)) {
@@ -281,9 +273,9 @@ class SocksServer extends \Thread {
             }
         }
 
-        $secKey    = $headers['Sec-WebSocket-Key'];
+        $secKey = $headers['Sec-WebSocket-Key'];
         $secAccept = base64_encode(pack('H*', sha1($secKey . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
-        $upgrade   = "HTTP/1.1 101 Web Socket Protocol Handshake\r\n" . "Upgrade: websocket\r\n" . "Connection: Upgrade\r\n" . "WebSocket-Origin: *\r\n" . "WebSocket-Location: ws://localhost:9090\r\n" . "Sec-WebSocket-Accept:$secAccept\r\n\r\n";
+        $upgrade = "HTTP/1.1 101 Web Socket Protocol Handshake\r\n" . "Upgrade: websocket\r\n" . "Connection: Upgrade\r\n" . "WebSocket-Origin: *\r\n" . "WebSocket-Location: ws://localhost:9090\r\n" . "Sec-WebSocket-Accept:$secAccept\r\n\r\n";
         fwrite($client_conn, $upgrade, strlen($upgrade));
     }
 
