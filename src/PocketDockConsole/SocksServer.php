@@ -34,7 +34,6 @@ class SocksServer extends \Thread {
         $this->loadPaths = array_reverse($loadPaths);
         $this->start(PTHREADS_INHERIT_ALL & ~PTHREADS_INHERIT_CLASSES);
         $this->log("Started SocksServer on " . $this->host . ":" . $this->port);
-        $this->log("Authentication password is: " . $this->password);
         if ($this->password === "PocketDockRules!") {
             $this->log("You are using the default password! Please change the password in config.yml");
         }
