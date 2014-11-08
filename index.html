@@ -364,15 +364,16 @@
 
         $(function() {
             if (($.getUrlVar("ip") != null) && ($.getUrlVar("port") != null) && ($.getUrlVar("password") != null)) {
-                $('#getInfo').modal({
-                    show: true
-                });
                 $("#ip").val($.getUrlVar("ip"));
                 $("#port").val($.getUrlVar("port"));
                 doStuff();
                 setTimeout(function() {
                     socket.send($.getUrlVar("password"));
                 }, 5000);
+            } else {
+                $('#getInfo').modal({
+                    show: true
+                });
             }
             editor = ace.edit("editor");
             editor.setTheme("ace/theme/monokai");
