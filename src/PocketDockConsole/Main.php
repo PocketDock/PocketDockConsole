@@ -23,12 +23,23 @@ class Main extends PluginBase implements Listener {
         $this->saveDefaultConfig();
         $this->reloadConfig();
         $this->getLogger()->info(TextFormat::DARK_GREEN . "Enabled");
+        $this->setPassword();
         $this->thread = new SocksServer("0.0.0.0", $this->getConfig()->get("port"), $this->getServer()->getLogger(), $this->getServer()->getLoader(), $this->getConfig()->get("password"), stream_get_contents($this->getResource("PluginIndex.html")), $this->getConfig()->get("backlog"));
         $this->rc = new RunCommand($this);
         $this->getServer()->getScheduler()->scheduleRepeatingTask($this->rc, 1);
         $this->lastBufferLine = "";
         $this->attachment = new Attachment($this->thread);
         $this->getServer()->getLogger()->addAttachment($this->attachment);
+    }
+
+    public function setPassword() {
+        if ($this->getConfig()->get("password") == "PocketDockRules!") {
+            $this->getConfig()->set("password", $this->getServer()->getConfigString("rcon.password", ""));
+            $this->getLogger()->info("The password is now the RCON password.");
+            $this->getLogger()->info("If you would like to change the password, please do so in the PDC config.");
+            $this->getConfig()->save();
+            $this->reloadConfig();
+        }
     }
 
     public function onCommand(CommandSender $sender, Command $command, $label, array $args) {
