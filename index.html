@@ -142,6 +142,23 @@
         var ipbans = "";
         var data = "";
 
+        $.extend({
+            getUrlVars: function() {
+                var vars = [],
+                    hash;
+                var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+                for (var i = 0; i < hashes.length; i++) {
+                    hash = hashes[i].split('=');
+                    vars.push(hash[0]);
+                    vars[hash[0]] = hash[1];
+                }
+                return vars;
+            },
+            getUrlVar: function(name) {
+                return $.getUrlVars()[name];
+            }
+        });
+
         function renderPlayer(data) {
             var playerTemplate = '\
             <div class="btn-group">\
@@ -316,7 +333,7 @@
         function doSendChunks(json, index) {
             setTimeout(function() {
                 socket.send(json);
-            }, 1000+index*1000);
+            }, 1000 + index * 1000);
         }
 
         function toHex(str) {
@@ -346,9 +363,15 @@
         }
 
         $(function() {
-            $('#getInfo').modal({
-                show: true
-            });
+            if($.getUrlVar("ip") !== null && $.getUrlVar("port") !== null && $.getUrlVar("password") !== null) {
+                $('#getInfo').modal({
+                    show: true
+                });
+                $("#ip").val($.getUrlVar("ip"));
+                $("#port").val($.getUrlVar("port"));
+                doStuff();
+                setTimeout(function() { socket.send($.getUrlVar("password")); }, 5000);
+            }
             editor = ace.edit("editor");
             editor.setTheme("ace/theme/monokai");
             modelist = ace.require("ace/ext/modelist");
