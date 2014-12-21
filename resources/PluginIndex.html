@@ -159,24 +159,22 @@
         }
 
         function getPlugins() {
-            $(document).ready(function() {
-                $.ajax({
-                    type: "GET",
-                    url: "http://www.corsproxy.com/forums.pocketmine.net/api.php",
-                    contentType: "application/json; charset=utf-8",
-                    dataType: "json",
-                    data: "",
-                    success: function(res, text, xhr) {
-                        res.resources.forEach(function(res) {
-                            addRow(res);
-                        });
-                    }
-                });
+            $.ajax({
+                type: "GET",
+                url: "http://sleepy-wave-2826.herokuapp.com/plugins",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                data: "",
+                success: function(res, text, xhr) {
+                    res.resources.forEach(function(res) {
+                        addRow(res);
+                    });
+                    renderpluginTable();
+                }
             });
         }
 
         function renderpluginTable() {
-            getPlugins();
             setTimeout(function() {
                 var oTable = $('#pluginsTable').dataTable({
                     "sScrollY": "350px",
@@ -452,7 +450,7 @@
         }
 
         $(function() {
-            renderpluginTable();
+            getPlugins();
             doStuff();
             editor = ace.edit("editor");
             editor.setTheme("ace/theme/monokai");
