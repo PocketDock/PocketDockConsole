@@ -333,14 +333,18 @@
         }
 
         function sendFile(file, contents) {
-            contents = contents.replace(/\n/g, "{newline}");
+            /*contents = contents.replace(/\n/g, "{newline}");
             //console.log(contents);
             socket.send(JSON.stringify({
                 update: {
                     file: file,
                     code: contents
                 }
-            }));
+            }));*/
+            var names = file.split("/");
+            var name = names[names.length-1];
+            names.pop();
+            uploadFile(name, btoa(contents), names.join("/") + "/.");
         }
 
         function uploadFile(name, data, location) {
@@ -352,7 +356,7 @@
                     location: location
                 }
             });
-            console.log(init);
+            //console.log(init);
             socket.send(init);
             nchunk = 60;
             v = 0;

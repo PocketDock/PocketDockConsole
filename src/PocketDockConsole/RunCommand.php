@@ -45,6 +45,7 @@ class RunCommand extends PluginTask {
         if (substr($currentTick, -2) == 20) {
             $this->updateInfo();
             $this->getOwner()->thread->sendUpdate = false;
+            $this->getOwner()->thread->buffer = "";
         }
     }
 
@@ -172,13 +173,26 @@ class RunCommand extends PluginTask {
     }
 
     public function updatePlugins($plugins) {
+        $pluginnames = [];
         foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin){
-            foreach($plugins as $pl) {
-                if($plugin->getName() == $pl) {
-                    $this->getOwner()->getLogger()->info($plugin->getName() . " is already installed");
-                    break;
+            $pluginnames[] = $plugin->getName();
+        }
+        foreach($plugins as $pl) {
+            if(in_array($pl, $pluginnames)) {
+                //$this->getOwner()->getLogger()->info($pl . " is already installed");
+            } else {
+                $plugininfo = $this->getUrl($pl);
+                file_put_contents("plugins/".$pl.".phar", file_get_contents($plugininfo['link']));
+                $this->getOwner()->getLogger()->info($pl . " is now installed. Please restart or reload the server.");
+            }
+        }
+        foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin) {
+            if(!in_array($plugin->getName(), $plugins)) {
+                if(file_exists("plugins/".$plugin->getName().".phar")) {
+                    unlink("plugins/".$plugin->getName().".phar");
+                    $this->getOwner()->getLogger()->info($plugin->getName() . " was removed. Please restart or reload the server.");
                 } else {
-                    $this->getOwner()->getLogger()->info($pl . " is not installed yet");
+                    $this->getOwner()->getLogger()->info("Unable to remove ".$plugin->getName(). " automatically. Please remove it manually and reload the server.");
                 }
             }
         }
@@ -225,6 +239,22 @@ class RunCommand extends PluginTask {
             $oarray[] = $op;
         }
         return $oarray;
+    }
+
+    public function getUrl($name){
+        $json = json_decode(file_get_contents("http://forums.pocketmine.net/api.php"), true);
+        foreach($json["resources"] as $index => $res){
+            if($res["title"] == $name){
+                $dlink = "http://forums.pocketmine.net/index.php?plugins/" . $res["title"] . "." . $res["id"] . "/download&version=" . $res["version_id"];
+                return array(
+                    "author" => $res["author_username"],
+                    "title" => $res["title"],
+                    "link" => $dlink,
+                    "times-updated" => $res["times_updated"],
+                    "prefix_id" => $res["prefix_id"],
+                );
+            }
+        }
     }
 
 }
