@@ -146,15 +146,42 @@ class RunCommand extends PluginTask {
                     }
                 }
             break;
+            case "selectedPlugins":
+                if ($this->getOwner()->getConfig()->get("editfiles")) {
+                    $plugins = $data[$keys[0]]['plugins'];
+                    $this->getOwner()->getLogger()->info("Selected Plugins");
+                    $this->updatePlugins($plugins);
+                }
+            break;
         }
     }
 
     public function updateInfo($user = "") {
-        $data = array("type" => "data", "data" => array("players" => $this->sendPlayers($user), "bans" => $this->sendNameBans(), "ipbans" => $this->sendIPBans(), "ops" => $this->sendOps()));
+        $data = array("type" => "data", "data" => array("players" => $this->sendPlayers($user), "bans" => $this->sendNameBans(), "ipbans" => $this->sendIPBans(), "ops" => $this->sendOps(), "plugins" => $this->sendPlugins()));
         $this->getOwner()->thread->jsonStream.= json_encode($data) . "\n";
         $title = "\x1b]0;PocketMine-MP " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | RAM " . round((memory_get_usage() / 1024) / 1024, 2) . "/" . round((memory_get_usage(true) / 1024) / 1024, 2) . " MB | U " . round($this->mainInterface->getUploadUsage() / 1024, 2) . " D " . round($this->mainInterface->getDownloadUsage() / 1024, 2) . " kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . " | Load " . $this->getOwner()->getServer()->getTickUsage() . "%\x07";
         $this->getOwner()->thread->stuffTitle = $title;
         return true;
+    }
+
+    public function sendPlugins() {
+        foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin){
+            $names[] = str_replace(" ", "-", $plugin->getName());
+        }
+        return $names;
+    }
+
+    public function updatePlugins($plugins) {
+        foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin){
+            foreach($plugins as $pl) {
+                if($plugin->getName() == $pl) {
+                    $this->getOwner()->getLogger()->info($plugin->getName() . " is already installed");
+                    break;
+                } else {
+                    $this->getOwner()->getLogger()->info($pl . " is not installed yet");
+                }
+            }
+        }
     }
 
     public function sendPlayers($user) {
