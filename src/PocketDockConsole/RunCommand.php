@@ -45,6 +45,7 @@ class RunCommand extends PluginTask {
         if (substr($currentTick, -2) == 20) {
             $this->updateInfo();
             $this->getOwner()->thread->sendUpdate = false;
+            $this->getOwner()->thread->buffer = "";
         }
     }
 
@@ -146,15 +147,55 @@ class RunCommand extends PluginTask {
                     }
                 }
             break;
+            case "selectedPlugins":
+                if ($this->getOwner()->getConfig()->get("editfiles")) {
+                    $plugins = $data[$keys[0]]['plugins'];
+                    $this->getOwner()->getLogger()->info("Selected Plugins");
+                    $this->updatePlugins($plugins);
+                }
+            break;
         }
     }
 
     public function updateInfo($user = "") {
-        $data = array("type" => "data", "data" => array("players" => $this->sendPlayers($user), "bans" => $this->sendNameBans(), "ipbans" => $this->sendIPBans(), "ops" => $this->sendOps()));
+        $data = array("type" => "data", "data" => array("players" => $this->sendPlayers($user), "bans" => $this->sendNameBans(), "ipbans" => $this->sendIPBans(), "ops" => $this->sendOps(), "plugins" => $this->sendPlugins()));
         $this->getOwner()->thread->jsonStream.= json_encode($data) . "\n";
         $title = "\x1b]0;PocketMine-MP " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | RAM " . round((memory_get_usage() / 1024) / 1024, 2) . "/" . round((memory_get_usage(true) / 1024) / 1024, 2) . " MB | U " . round($this->mainInterface->getUploadUsage() / 1024, 2) . " D " . round($this->mainInterface->getDownloadUsage() / 1024, 2) . " kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . " | Load " . $this->getOwner()->getServer()->getTickUsage() . "%\x07";
         $this->getOwner()->thread->stuffTitle = $title;
         return true;
+    }
+
+    public function sendPlugins() {
+        foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin){
+            $names[] = str_replace(" ", "-", $plugin->getName());
+        }
+        return $names;
+    }
+
+    public function updatePlugins($plugins) {
+        $pluginnames = [];
+        foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin){
+            $pluginnames[] = $plugin->getName();
+        }
+        foreach($plugins as $pl) {
+            if(in_array($pl, $pluginnames)) {
+                //$this->getOwner()->getLogger()->info($pl . " is already installed");
+            } else {
+                $plugininfo = $this->getUrl($pl);
+                file_put_contents(\pocketmine\PLUGIN_PATH.$pl.".phar", file_get_contents($plugininfo['link']));
+                $this->getOwner()->getLogger()->info($pl . " is now installed. Please restart or reload the server.");
+            }
+        }
+        foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin) {
+            if(!in_array($plugin->getName(), $plugins)) {
+                if(file_exists(\pocketmine\PLUGIN_PATH.$plugin->getName().".phar")) {
+                    unlink(\pocketmine\PLUGIN_PATH.$plugin->getName().".phar");
+                    $this->getOwner()->getLogger()->info($plugin->getName() . " was removed. Please restart or reload the server.");
+                } else {
+                    $this->getOwner()->getLogger()->info("Unable to remove ".$plugin->getName(). " automatically. Please remove it manually and reload the server.");
+                }
+            }
+        }
     }
 
     public function sendPlayers($user) {
@@ -198,6 +239,22 @@ class RunCommand extends PluginTask {
             $oarray[] = $op;
         }
         return $oarray;
+    }
+
+    public function getUrl($name){
+        $json = json_decode(file_get_contents("http://forums.pocketmine.net/api.php"), true);
+        foreach($json["resources"] as $index => $res){
+            if($res["title"] == $name){
+                $dlink = "http://forums.pocketmine.net/index.php?plugins/" . $res["title"] . "." . $res["id"] . "/download&version=" . $res["version_id"];
+                return array(
+                    "author" => $res["author_username"],
+                    "title" => $res["title"],
+                    "link" => $dlink,
+                    "times-updated" => $res["times_updated"],
+                    "prefix_id" => $res["prefix_id"],
+                );
+            }
+        }
     }
 
 }
