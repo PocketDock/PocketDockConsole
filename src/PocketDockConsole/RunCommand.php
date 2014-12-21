@@ -182,14 +182,14 @@ class RunCommand extends PluginTask {
                 //$this->getOwner()->getLogger()->info($pl . " is already installed");
             } else {
                 $plugininfo = $this->getUrl($pl);
-                file_put_contents("plugins/".$pl.".phar", file_get_contents($plugininfo['link']));
+                file_put_contents(\pocketmine\PLUGIN_PATH.$pl.".phar", file_get_contents($plugininfo['link']));
                 $this->getOwner()->getLogger()->info($pl . " is now installed. Please restart or reload the server.");
             }
         }
         foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin) {
             if(!in_array($plugin->getName(), $plugins)) {
-                if(file_exists("plugins/".$plugin->getName().".phar")) {
-                    unlink("plugins/".$plugin->getName().".phar");
+                if(file_exists(\pocketmine\PLUGIN_PATH.$plugin->getName().".phar")) {
+                    unlink(\pocketmine\PLUGIN_PATH.$plugin->getName().".phar");
                     $this->getOwner()->getLogger()->info($plugin->getName() . " was removed. Please restart or reload the server.");
                 } else {
                     $this->getOwner()->getLogger()->info("Unable to remove ".$plugin->getName(). " automatically. Please remove it manually and reload the server.");
