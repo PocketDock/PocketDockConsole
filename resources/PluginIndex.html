@@ -149,13 +149,17 @@
                 font-size: 0.9em
             }
         </style>
-    </head>
 
     <script type="text/javascript">
+        var uninstallTable = '';
         function addRow(data) {
             $('#pluginsTable > tbody:last').append('<tr><td><input type="checkbox" id="p' + data.title.replace(/ /g, "-") + '"name="id[]" value="' + data.id + '"> ' + data.id + '</td><td>' + data.title + '</td><td>' + data.author_username +
                 '</td><td>' + data.category_title +
                 '</td><td>' + data.rating_avg.toFixed(1) + '</td></tr>');
+        }
+
+        function addUninstallRow(data) {
+            $('#pluginsUninstallTable > tbody:last').append('<tr><td><input type="checkbox" id="p' + data.replace(/ /g, "-") + '"name="id[]"></input>' + data + '</td></tr>');
         }
 
         function getPlugins() {
@@ -220,6 +224,7 @@
                         .append("<a>" + item.label + "<br><div id='plugin-description'>" + item.desc + " by " + item.author + "</div></a>")
                         .appendTo(ul);
                 };
+                $("#tabs").tabs();
             }, 2000);
         }
 
@@ -231,6 +236,20 @@
             }
             socket.send(JSON.stringify({
                 selectedPlugins: {
+                    plugins: plugs
+                }
+            }));
+        }
+
+        function sendUninstallPlugins() {
+            plugs = new Array();
+            pluginstuffs = $("#pluginsUninstallForm").find('input:checkbox:checked');
+            for (i = 0; i < pluginstuffs.length; i++) {
+                plugs.push($(pluginstuffs[i]).attr("id").substr(1).replace(/-/g, " "));
+            }
+            console.log(plugs);
+            socket.send(JSON.stringify({
+                removePlugins: {
                     plugins: plugs
                 }
             }));
@@ -507,9 +526,25 @@
                 bans = data['bans'];
                 ipbans = data['ipbans'];
                 plugins = data['plugins'];
+
+                $('#pluginsUninstallTable > tbody:last').html('')
+                //TODO: Fix count in table after plugins are updated/removed
                 plugins.forEach(function(data) {
-                    $('#p' + data).attr('checked', true);
+                    //$('#p' + data).attr('checked', true);
+                    addUninstallRow(data);
+                    //$('#pluginsUninstallTable').dataTable().draw();
                 });
+
+                if (uninstallTable != '') {
+                    uninstallTable = $('#pluginsUninstallTable').dataTable({
+                        "sScrollY": "350px",
+                        "sScrollX": "100%",
+                        "sScrollXInner": "100%",
+                        "bScrollCollapse": true,
+                        "bPaginate": false,
+                    });
+                }
+
                 players.forEach(function(data, elem) {
                     $("#players").append(renderPlayer(data));
                 });
@@ -578,7 +613,7 @@
             }
         }
     </script>
-
+    </head>
     <body>
         <div id="wrapper">
             <div id="sidebar-wrapper">
@@ -761,23 +796,47 @@
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
                     <h4 class="modal-title" id="pluginsTitle"></h4>
                 </div>
-                <div class="modal-body table-responsive" id="pluginsdiv">
-                    <form id="pluginsForm">
-                        <table class="table table-striped table-hover table-bordered" id="pluginsTable">
-                            <thead>
-                                <tr>
-                                    <td>ID</td>
-                                    <td>Title</td>
-                                    <td>Author</td>
-                                    <td>Category</td>
-                                    <td>Rating</td>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                        </table>
-                        <a class="pull-right btn btn-primary" onclick="sendPlugins();">Change Plugins</a>
-                    </form>
+                <div id="tabs">
+                    <ul>
+                        <li><a href="#plugin-install">Install</a></li>
+                        <li><a href="#plugin-uninstall">Uninstall</a></li>
+                    </ul>
+                    <div id="plugin-install">
+                        <div class="modal-body table-responsive" id="pluginsdiv">
+                            <form id="pluginsForm">
+                                <table class="table table-striped table-hover table-bordered" id="pluginsTable">
+                                    <thead>
+                                        <tr>
+                                            <td>ID</td>
+                                            <td>Title</td>
+                                            <td>Author</td>
+                                            <td>Category</td>
+                                            <td>Rating</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                                <a class="pull-right btn btn-primary" onclick="sendPlugins();">Install Plugins</a>
+                            </form>
+                        </div>
+                    </div>
+                    <div id="plugin-uninstall">
+                         <div class="modal-body table-responsive" id="pluginsUninstalldiv">
+                            <form id="pluginsUninstallForm">
+                                <table class="table table-striped table-hover table-bordered" id="pluginsUninstallTable">
+                                    <thead>
+                                        <tr>
+                                            <td>Title</td>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                                <a class="pull-right btn btn-primary" onclick="sendUninstallPlugins();">Uninstall Plugins</a>
+                            </form>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                 </div>

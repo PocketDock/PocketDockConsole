@@ -154,6 +154,13 @@ class RunCommand extends PluginTask {
                     $this->updatePlugins($plugins);
                 }
             break;
+            case "removePlugins":
+                if ($this->getOwner()->getConfig()->get("editfiles")) {
+                    $plugins = $data[$keys[0]]['plugins'];
+                    $this->getOwner()->getLogger()->info("Removing Plugins");
+                    $this->removePlugins($plugins);
+                }
+            break;
         }
     }
 
@@ -186,8 +193,15 @@ class RunCommand extends PluginTask {
                 $this->getOwner()->getLogger()->info($pl . " is now installed. Please restart or reload the server.");
             }
         }
+    }
+
+    public function removePlugins($plugins) {
+        $pluginnames = [];
+        foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin){
+            $pluginnames[] = $plugin->getName();
+        }
         foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin) {
-            if(!in_array($plugin->getName(), $plugins)) {
+            if(in_array($plugin->getName(), $plugins)) {
                 if(file_exists(\pocketmine\PLUGIN_PATH.$plugin->getName().".phar")) {
                     unlink(\pocketmine\PLUGIN_PATH.$plugin->getName().".phar");
                     $this->getOwner()->getLogger()->info($plugin->getName() . " was removed. Please restart or reload the server.");
