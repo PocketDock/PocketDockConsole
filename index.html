@@ -151,7 +151,7 @@
         </style>
 
     <script type="text/javascript">
-        
+
         $.extend({
             getUrlVars: function() {
                 var vars = [],
@@ -168,7 +168,7 @@
                 return $.getUrlVars()[name];
             }
         });
-    
+
         var uninstallTable = '';
         function addRow(data) {
             $('#pluginsTable > tbody:last').append('<tr><td><input type="checkbox" id="p' + data.title.replace(/ /g, "-") + '"name="id[]" value="' + data.id + '"> ' + data.id + '</td><td>' + data.title + '</td><td>' + data.author_username +
@@ -189,7 +189,10 @@
                 data: "",
                 success: function(res, text, xhr) {
                     res.resources.forEach(function(res) {
-                        addRow(res);
+                        if (res.prefix_id !== 7) {
+                            addRow(res);
+                        }
+
                     });
                     renderpluginTable();
                 }
