@@ -25,3 +25,4 @@ PocketDockConsole -- *Because RCON was so retro*
 1. WebSockets
 2. Term.js - By: Christopher Jeffrey [https://github.com/chjj/term.js/]
 3. Some guidance from PHP-Push-WebSocket [https://github.com/srchea/PHP-Push-WebSocket/]
+4. Wrench - By: @nicokaiser, @lemmingzshadow, and @mazhack [https://github.com/varspool/Wrench/]

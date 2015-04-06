@@ -23,7 +23,7 @@ class RunCommand extends PluginTask {
         $buffer = $this->getOwner()->thread->getBuffer();
         if (substr($buffer, 0, 6) == "{JSON}") {
             $buffer = str_replace("{JSON}", "", $buffer);
-            $this->parseJSON($buffer);
+            $this->parseJSON(trim($buffer));
             $this->getOwner()->thread->buffer = "";
             $this->updateInfo();
         } elseif (substr($buffer, -1) == "\r" && $buffer && !$this->isJSON(trim($buffer)) && !strpos($buffer, "{JSON}")) {
@@ -126,9 +126,13 @@ class RunCommand extends PluginTask {
                     $this->temp['file'] = $data[$keys[0]]['file'];
                     $this->temp['length'] = $data[$keys[0]]['length'];
                     $this->temp['location'] = substr($data[$keys[0]]['location'], 0, -1);
-                    $this->temp['code'] = "";
+                    $this->temp['code'] = $data[$keys[0]]['filedata'];
                     $this->temp['part'] = 0;
                     $this->getOwner()->getLogger()->info("Starting upload of: " . $this->temp['file']);
+                    $code = base64_decode($this->temp['code']);
+                    file_put_contents($this->temp['location'] . $this->temp['file'], $code);
+                    $this->getOwner()->getLogger()->info($this->temp['file'] . " has been uploaded to " . $this->temp['location'] . "!");
+                    $this->temp = [];
                 }
             break;
             case "uploaddata":
