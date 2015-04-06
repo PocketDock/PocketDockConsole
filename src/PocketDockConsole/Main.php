@@ -11,6 +11,7 @@ use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerLoginEvent;
 use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\event\player\PlayerRespawnEvent;
+use pocketmine\ThreadManager;
 
 class Main extends PluginBase implements Listener {
 
@@ -107,6 +108,8 @@ class Main extends PluginBase implements Listener {
 
     public function onDisable() {
         $this->getLogger()->info(TextFormat::DARK_RED . "Disabled");
+        $this->getServer()->getLogger()->removeAttachment($this->attachment);
+        ThreadManager::getInstance()->remove($this->thread);
         $this->thread->kill();
     }
 
