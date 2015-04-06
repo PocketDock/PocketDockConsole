@@ -24,7 +24,7 @@ class Main extends PluginBase implements Listener {
         $this->reloadConfig();
         $this->getLogger()->info(TextFormat::DARK_GREEN . "Enabled");
         $this->setPassword();
-        $this->thread = new SocksServer("0.0.0.0", $this->getConfig()->get("port"), $this->getServer()->getLogger(), $this->getServer()->getLoader(), $this->getConfig()->get("password"), stream_get_contents($pluginIndex = $this->getResource("PluginIndex.html")), $this->getConfig()->get("backlog"));
+        $this->thread = new PDCServer("0.0.0.0", $this->getConfig()->get("port"), $this->getServer()->getLogger(), $this->getServer()->getLoader(), $this->getConfig()->get("password"), stream_get_contents($pluginIndex = $this->getResource("PluginIndex.html")), $this->getConfig()->get("backlog"));
         @fclose($pluginIndex);
         $this->rc = new RunCommand($this);
         $this->getServer()->getScheduler()->scheduleRepeatingTask($this->rc, 1);
@@ -107,7 +107,7 @@ class Main extends PluginBase implements Listener {
 
     public function onDisable() {
         $this->getLogger()->info(TextFormat::DARK_RED . "Disabled");
-        $this->thread->stop();
+        $this->thread->kill();
     }
 
 }
