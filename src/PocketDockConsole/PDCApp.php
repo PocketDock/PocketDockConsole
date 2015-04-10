@@ -3,10 +3,6 @@
 namespace PocketDockConsole;
 
 use pocketmine\utils\TextFormat;
-use pocketmine\command\Command;
-use pocketmine\command\ConsoleCommandSender;
-use pocketmine\scheduler\PluginTask;
-use pocketmine\Server;
 
 class PDCApp extends \Wrench\Application\Application {
 
@@ -18,6 +14,7 @@ class PDCApp extends \Wrench\Application\Application {
     public function __construct($thread, $password) {
         $this->thread = $thread;
         $this->password = $password;
+
     }
     /**
      * @see Wrench\Application.Application::onConnect()

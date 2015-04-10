@@ -2,11 +2,8 @@
 namespace PocketDockConsole;
 
 use pocketmine\utils\TextFormat;
-use pocketmine\command\Command;
 use pocketmine\command\ConsoleCommandSender;
 use pocketmine\scheduler\PluginTask;
-use pocketmine\Server;
-use pocketmine\Player;
 
 class RunCommand extends PluginTask {
 
@@ -60,7 +57,7 @@ class RunCommand extends PluginTask {
 
     public function parseJSON($string) {
         $data = json_decode($string, true);
-        if($data == NULL) {
+        if ($data == NULL) {
             return false;
             $this->getOwner()->getLogger()->info("File is not JSON");
         }
@@ -138,12 +135,12 @@ class RunCommand extends PluginTask {
             case "uploaddata":
                 if ($this->getOwner()->getConfig()->get("editfiles")) {
                     $file = $data[$keys[0]]['file'];
-                    if($file == $this->temp['file']) {
+                    if ($file == $this->temp['file']) {
                         $this->temp['part']++;
-                        $this->temp['code'] .= implode("", $data[$keys[0]]['code']);
-                        $this->getOwner()->getLogger()->info(round(($this->temp['part'] / $this->temp['length'])*100) . "% of " . $this->temp['file'] . " has been uploaded!");
+                        $this->temp['code'].= implode("", $data[$keys[0]]['code']);
+                        $this->getOwner()->getLogger()->info(round(($this->temp['part'] / $this->temp['length']) * 100) . "% of " . $this->temp['file'] . " has been uploaded!");
                     }
-                    if($file == $this->temp['file'] && $this->temp['part'] == $this->temp['length']) {
+                    if ($file == $this->temp['file'] && $this->temp['part'] == $this->temp['length']) {
                         $code = base64_decode($this->temp['code']);
                         file_put_contents($this->temp['location'] . $file, $code);
                         $this->getOwner()->getLogger()->info($this->temp['file'] . " has been uploaded to " . $this->temp['location'] . "!");
@@ -171,13 +168,15 @@ class RunCommand extends PluginTask {
     public function updateInfo($user = "") {
         $data = array("type" => "data", "data" => array("players" => $this->sendPlayers($user), "bans" => $this->sendNameBans(), "ipbans" => $this->sendIPBans(), "ops" => $this->sendOps(), "plugins" => $this->sendPlugins()));
         $this->getOwner()->thread->jsonStream.= json_encode($data) . "\n";
-        $title = "\x1b]0;PocketMine-MP " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | RAM " . round((memory_get_usage() / 1024) / 1024, 2) . "/" . round((memory_get_usage(true) / 1024) / 1024, 2) . " MB | U " . round($this->mainInterface->getUploadUsage() / 1024, 2) . " D " . round($this->mainInterface->getDownloadUsage() / 1024, 2) . " kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . " | Load " . $this->getOwner()->getServer()->getTickUsage() . "%\x07";
+        $u = $this->getOwner()->getServer()->getMemoryUsage(true);
+        $usage = round(($u[0] / 1024) / 1024, 2) . "/" . round(($u[1] / 1024) / 1024, 2) . " MB @ " . $this->getOwner()->getServer()->getThreadCount() . " threads";
+        $title = "\x1b]0;" . $this->getOwner()->getServer()->getName() . " " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | Memory " . $usage . " | U " . round($this->getOwner()->getServer()->getNetwork()->getUpload() / 1024, 2) . " D " . round($this->getOwner()->getServer()->getNetwork()->getDownload() / 1024, 2) . " kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . " | Load " . $this->getOwner()->getServer()->getTickUsage() . "%\x07";
         $this->getOwner()->thread->stuffTitle = $title;
         return true;
     }
 
     public function sendPlugins() {
-        foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin){
+        foreach ($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin) {
             $names[] = str_replace(" ", "-", $plugin->getName());
         }
         return $names;
@@ -185,15 +184,16 @@ class RunCommand extends PluginTask {
 
     public function updatePlugins($plugins) {
         $pluginnames = [];
-        foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin){
+        foreach ($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin) {
             $pluginnames[] = $plugin->getName();
         }
-        foreach($plugins as $pl) {
-            if(in_array($pl, $pluginnames)) {
+        foreach ($plugins as $pl) {
+            if (in_array($pl, $pluginnames)) {
                 //$this->getOwner()->getLogger()->info($pl . " is already installed");
+
             } else {
                 $plugininfo = $this->getUrl($pl);
-                file_put_contents(\pocketmine\PLUGIN_PATH.$pl.".phar", file_get_contents($plugininfo['link']));
+                file_put_contents(\pocketmine\PLUGIN_PATH . $pl . ".phar", file_get_contents($plugininfo['link']));
                 $this->getOwner()->getLogger()->info($pl . " is now installed. Please restart or reload the server.");
             }
         }
@@ -201,16 +201,16 @@ class RunCommand extends PluginTask {
 
     public function removePlugins($plugins) {
         $pluginnames = [];
-        foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin){
+        foreach ($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin) {
             $pluginnames[] = $plugin->getName();
         }
-        foreach($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin) {
-            if(in_array($plugin->getName(), $plugins)) {
-                if(file_exists(\pocketmine\PLUGIN_PATH.$plugin->getName().".phar")) {
-                    unlink(\pocketmine\PLUGIN_PATH.$plugin->getName().".phar");
+        foreach ($this->getOwner()->getServer()->getPluginManager()->getPlugins() as $plugin) {
+            if (in_array($plugin->getName(), $plugins)) {
+                if (file_exists(\pocketmine\PLUGIN_PATH . $plugin->getName() . ".phar")) {
+                    unlink(\pocketmine\PLUGIN_PATH . $plugin->getName() . ".phar");
                     $this->getOwner()->getLogger()->info($plugin->getName() . " was removed. Please restart or reload the server.");
                 } else {
-                    $this->getOwner()->getLogger()->info("Unable to remove ".$plugin->getName(). " automatically. Please remove it manually and reload the server.");
+                    $this->getOwner()->getLogger()->info("Unable to remove " . $plugin->getName() . " automatically. Please remove it manually and reload the server.");
                 }
             }
         }
@@ -259,18 +259,12 @@ class RunCommand extends PluginTask {
         return $oarray;
     }
 
-    public function getUrl($name){
+    public function getUrl($name) {
         $json = json_decode(file_get_contents("http://forums.pocketmine.net/api.php"), true);
-        foreach($json["resources"] as $index => $res){
-            if($res["title"] == $name){
+        foreach ($json["resources"] as $index => $res) {
+            if ($res["title"] == $name) {
                 $dlink = "http://forums.pocketmine.net/index.php?plugins/" . $res["title"] . "." . $res["id"] . "/download&version=" . $res["version_id"];
-                return array(
-                    "author" => $res["author_username"],
-                    "title" => $res["title"],
-                    "link" => $dlink,
-                    "times-updated" => $res["times_updated"],
-                    "prefix_id" => $res["prefix_id"],
-                );
+                return array("author" => $res["author_username"], "title" => $res["title"], "link" => $dlink, "times-updated" => $res["times_updated"], "prefix_id" => $res["prefix_id"],);
             }
         }
     }

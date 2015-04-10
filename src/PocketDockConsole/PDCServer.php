@@ -3,15 +3,12 @@
 namespace PocketDockConsole;
 
 use pocketmine\utils\TextFormat;
-use pocketmine\command\Command;
-use pocketmine\command\ConsoleCommandSender;
-use pocketmine\scheduler\PluginTask;
-use pocketmine\Server;
+use pocketmine\utils\Terminal;
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-class PDCServer extends \Thread {
+class PDCServer extends \pocketmine\Thread {
 
     public $null = NULL;
     public $buffer = "";
@@ -63,6 +60,7 @@ class PDCServer extends \Thread {
             }
         }
         $this->loader->register(true);
+        Terminal::init();
         $server = new \Wrench\Server('ws://'.$this->host.':'.$this->port, array(
             "logger" => function($msg, $pri) { }
         ));
