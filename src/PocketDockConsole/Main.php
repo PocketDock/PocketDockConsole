@@ -98,7 +98,7 @@ class Main extends PluginBase implements Listener {
     }
 
     public function sendFiles() {
-        if($this->getConfig()->get("viewfiles")) {
+        if ($this->getConfig()->get("viewfiles")) {
             $this->thread->jsonStream.= json_encode(array("type" => "files", "files" => $this->getFiles(realpath($this->getServer()->getDataPath())))) . "\n";
         }
         return false;
