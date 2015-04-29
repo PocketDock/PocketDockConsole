@@ -1,17 +1,13 @@
 <?php
-
 namespace PocketDockConsole;
 
 use pocketmine\utils\TextFormat;
-use pocketmine\command\Command;
-use pocketmine\command\ConsoleCommandSender;
-use pocketmine\scheduler\PluginTask;
-use pocketmine\Server;
+use pocketmine\utils\Terminal;
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-class PDCServer extends \Thread {
+class PDCServer extends \pocketmine\Thread {
 
     public $null = NULL;
     public $buffer = "";
@@ -57,17 +53,16 @@ class PDCServer extends \Thread {
     }
 
     public function run() {
-        foreach($this->loadPaths as $name => $path){
-            if(!class_exists($name, false) and !interface_exists($name, false)){
-                require($path);
+        foreach ($this->loadPaths as $name => $path) {
+            if (!class_exists($name, false) and !interface_exists($name, false)) {
+                require ($path);
             }
         }
         $this->loader->register(true);
-        $server = new \Wrench\Server('ws://'.$this->host.':'.$this->port, array(
-            "logger" => function($msg, $pri) { }
-        ));
+        Terminal::init();
+        $server = new \Wrench\Server('ws://' . $this->host . ':' . $this->port, array("logger" => function ($msg, $pri) { }));
         $server->registerApplication("app", new PDCApp($this, $this->password));
-        $server->addListener(\Wrench\Server::EVENT_SOCKET_CONNECT, function($data, $other) {
+        $server->addListener(\Wrench\Server::EVENT_SOCKET_CONNECT, function ($data, $other) {
             $header = $other->getSocket()->receive();
             if ($this->isHTTP($header)) {
                 $other->getSocket()->send("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" . $this->data);

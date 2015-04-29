@@ -15,7 +15,7 @@ class Attachment extends \ThreadedLoggerAttachment implements \LoggerAttachment 
     }
 
     public function log($level, $message) {
-        $this->stream.= $message;
+        $this->stream.= $message . "\r\n";
         $this->thread->stuffToSend = $this->stream;
     }
 
