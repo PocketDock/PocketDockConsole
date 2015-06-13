@@ -4,6 +4,8 @@ namespace PocketDockConsole;
 use pocketmine\utils\TextFormat;
 use pocketmine\command\ConsoleCommandSender;
 use pocketmine\scheduler\PluginTask;
+use pocketmine\utils\Utils;
+use pocketmine\Player;
 
 class RunCommand extends PluginTask {
 
@@ -71,6 +73,8 @@ class RunCommand extends PluginTask {
                 if (($player = $this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name'])) instanceof Player) {
                     $player->kick();
                     $this->getOwner()->getLogger()->info($data[$keys[0]]['name'] . " has been kicked!");
+                } else {
+                    $this->getOwner()->getLogger()->info($data[$keys[0]]['name'] . " is not a valid player!");
                 }
             break;
             case "ban":
@@ -103,6 +107,8 @@ class RunCommand extends PluginTask {
             case "changegm":
                 if (($player = $this->getOwner()->getServer()->getPlayerExact($data[$keys[0]]['name'])) instanceof Player) {
                     $player->setGamemode($data[$keys[0]]['mode']);
+                } else {
+                    $this->getOwner()->getLogger()->info($data[$keys[0]]['name'] . " is not a valid player!");
                 }
             break;
             case "getCode":
@@ -168,8 +174,9 @@ class RunCommand extends PluginTask {
     public function updateInfo($user = "") {
         $data = array("type" => "data", "data" => array("players" => $this->sendPlayers($user), "bans" => $this->sendNameBans(), "ipbans" => $this->sendIPBans(), "ops" => $this->sendOps(), "plugins" => $this->sendPlugins()));
         $this->getOwner()->thread->jsonStream.= json_encode($data) . "\n";
-        $u = $this->getOwner()->getServer()->getMemoryUsage(true);
-        $usage = round(($u[0] / 1024) / 1024, 2) . "/" . round(($u[1] / 1024) / 1024, 2) . " MB @ " . $this->getOwner()->getServer()->getThreadCount() . " threads";
+        $u = Utils::getMemoryUsage(true);
+        $d = Utils::getRealMemoryUsage();
+        $usage = round(($u[0] / 1024) / 1024, 2) . "/" . round(($d[0] / 1024) / 1024, 2) . "/" . round(($u[1] / 1024) / 1024, 2) . "/".round(($u[2] / 1024) / 1024, 2)." MB @ " . Utils::getThreadCount() . " threads";
         $title = "\x1b]0;" . $this->getOwner()->getServer()->getName() . " " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | Memory " . $usage . " | U " . round($this->getOwner()->getServer()->getNetwork()->getUpload() / 1024, 2) . " D " . round($this->getOwner()->getServer()->getNetwork()->getDownload() / 1024, 2) . " kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . " | Load " . $this->getOwner()->getServer()->getTickUsage() . "%\x07";
         $this->getOwner()->thread->stuffTitle = $title;
         return true;
