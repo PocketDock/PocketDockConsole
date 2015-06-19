@@ -13,7 +13,6 @@ class PDCApp extends \Wrench\Application\Application {
     public function __construct($thread, $password) {
         $this->thread = $thread;
         $this->password = $password;
-
     }
     /**
      * @see Wrench\Application.Application::onConnect()
@@ -43,7 +42,10 @@ class PDCApp extends \Wrench\Application\Application {
                         }
                     }
                 }
-                $this->thread->lastLine = count($stuffArray);
+                //$this->thread->lastLine = count($stuffArray);
+                $this->thread->lastLine = 1;
+                $this->thread->stuffToSend = "";
+                $this->thread->clearstream = true;
                 $sendto->send($this->thread->stuffTitle);
             }
             $jsonArray = explode("\n", $this->thread->jsonStream);
@@ -58,7 +60,9 @@ class PDCApp extends \Wrench\Application\Application {
                         }
                     }
                 }
-                $this->thread->lastLineJSON = count($jsonArray);
+                //$this->thread->lastLineJSON = count($jsonArray);
+                $this->thread->lastLineJSON = 1;
+                $this->thread->jsonStream = "";
                 $sendto->send($this->thread->stuffTitle);
             }
         }

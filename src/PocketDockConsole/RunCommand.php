@@ -13,9 +13,6 @@ class RunCommand extends PluginTask {
 
     public function __construct($owner) {
         $this->owner = $owner;
-        $interfaces = $this->getOwner()->getServer()->getInterfaces();
-        $values = array_values($interfaces);
-        $this->mainInterface = $values[0];
     }
 
     public function onRun($currentTick) {
@@ -36,15 +33,23 @@ class RunCommand extends PluginTask {
             $this->getOwner()->thread->buffer = "";
             $this->updateInfo();
         }
+
         if ($this->getOwner()->thread->sendUpdate) {
             $this->updateInfo();
             $this->getOwner()->sendFiles();
         }
+
         $this->getOwner()->thread->sendUpdate = false;
+
         if (substr($currentTick, -2) == 20) {
             $this->updateInfo();
             $this->getOwner()->thread->sendUpdate = false;
             $this->getOwner()->thread->buffer = "";
+        }
+
+        if ($this->getOwner()->thread->clearstream) {
+            $this->getOwner()->attachment->stream = "";
+            $this->getOwner()->thread->clearstream = false;
         }
     }
 
@@ -174,12 +179,23 @@ class RunCommand extends PluginTask {
     public function updateInfo($user = "") {
         $data = array("type" => "data", "data" => array("players" => $this->sendPlayers($user), "bans" => $this->sendNameBans(), "ipbans" => $this->sendIPBans(), "ops" => $this->sendOps(), "plugins" => $this->sendPlugins()));
         $this->getOwner()->thread->jsonStream.= json_encode($data) . "\n";
-        $u = Utils::getMemoryUsage(true);
-        $d = Utils::getRealMemoryUsage();
-        $usage = round(($u[0] / 1024) / 1024, 2) . "/" . round(($d[0] / 1024) / 1024, 2) . "/" . round(($u[1] / 1024) / 1024, 2) . "/".round(($u[2] / 1024) / 1024, 2)." MB @ " . Utils::getThreadCount() . " threads";
-        $title = "\x1b]0;" . $this->getOwner()->getServer()->getName() . " " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | Memory " . $usage . " | U " . round($this->getOwner()->getServer()->getNetwork()->getUpload() / 1024, 2) . " D " . round($this->getOwner()->getServer()->getNetwork()->getDownload() / 1024, 2) . " kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . " | Load " . $this->getOwner()->getServer()->getTickUsage() . "%\x07";
+        if (!$this->getOwner()->legacy) {
+            $u = $this->getMemoryUsage(true);
+            $d = $this->getRealMemoryUsage();
+            $usage = round(($u[0] / 1024) / 1024, 2) . "/" . round(($d[0] / 1024) / 1024, 2) . "/" . round(($u[1] / 1024) / 1024, 2) . "/" . round(($u[2] / 1024) / 1024, 2) . " MB @ " . $this->getThreadCount() . " threads";
+            $title = "\x1b]0;" . $this->getOwner()->getServer()->getName() . " " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | Memory " . $usage . " | U " . round($this->getOwner()->getServer()->getNetwork()->getUpload() / 1024, 2) . " D " . round($this->getOwner()->getServer()->getNetwork()->getDownload() / 1024, 2) . " kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . " | Load " . $this->getOwner()->getServer()->getTickUsage() . "%\x07";
+        } else {
+            $this->backwardsCompat();
+            $title = "\x1b]0;PocketMine-MP " . $this->getOwner()->getServer()->getPocketMineVersion() . " | Online " . count($this->getOwner()->getServer()->getOnlinePlayers()) . "/" . $this->getOwner()->getServer()->getMaxPlayers() . " | RAM " . round((memory_get_usage() / 1024) / 1024, 2) . "/" . round((memory_get_usage(true) / 1024) / 1024, 2) . " MB | U " . round($this->mainInterface->getUploadUsage() / 1024, 2) . " D " . round($this->mainInterface->getDownloadUsage() / 1024, 2) . " kB/s | TPS " . $this->getOwner()->getServer()->getTicksPerSecond() . " | Load " . $this->getOwner()->getServer()->getTickUsage() . "%\x07";
+        }
         $this->getOwner()->thread->stuffTitle = $title;
         return true;
+    }
+
+    public function backwardsCompat() {
+        $interfaces = $this->getOwner()->getServer()->getInterfaces();
+        $values = array_values($interfaces);
+        $this->mainInterface = $values[0];
     }
 
     public function sendPlugins() {
@@ -274,6 +290,63 @@ class RunCommand extends PluginTask {
                 return array("author" => $res["author_username"], "title" => $res["title"], "link" => $dlink, "times-updated" => $res["times_updated"], "prefix_id" => $res["prefix_id"],);
             }
         }
+    }
+
+    # Taken from PocketMine-MP (new versions) for backwards compatibility
+
+    public function getMemoryUsage($advanced = false) {
+        $reserved = memory_get_usage();
+        $VmSize = null;
+        $VmRSS = null;
+        if (Utils::getOS() === "linux" or Utils::getOS() === "android") {
+            $status = file_get_contents("/proc/self/status");
+            if (preg_match("/VmRSS:[ \t]+([0-9]+) kB/", $status, $matches) > 0) {
+                $VmRSS = $matches[1] * 1024;
+            }
+            if (preg_match("/VmSize:[ \t]+([0-9]+) kB/", $status, $matches) > 0) {
+                $VmSize = $matches[1] * 1024;
+            }
+        }
+        //TODO: more OS
+        if ($VmRSS === null) {
+            $VmRSS = memory_get_usage();
+        }
+        if (!$advanced) {
+            return $VmRSS;
+        }
+        if ($VmSize === null) {
+            $VmSize = memory_get_usage(true);
+        }
+        return [$reserved, $VmRSS, $VmSize];
+    }
+
+    public function getRealMemoryUsage() {
+        $stack = 0;
+        $heap = 0;
+        if (Utils::getOS() === "linux" or Utils::getOS() === "android") {
+            $mappings = file("/proc/self/maps");
+            foreach ($mappings as $line) {
+                if (preg_match("#([a-z0-9]+)\\-([a-z0-9]+) [rwxp\\-]{4} [a-z0-9]+ [^\\[]*\\[([a-zA-z0-9]+)\\]#", trim($line), $matches) > 0) {
+                    if (strpos($matches[3], "heap") === 0) {
+                        $heap+= hexdec($matches[2]) - hexdec($matches[1]);
+                    } elseif (strpos($matches[3], "stack") === 0) {
+                        $stack+= hexdec($matches[2]) - hexdec($matches[1]);
+                    }
+                }
+            }
+        }
+        return [$heap, $stack];
+    }
+
+    public function getThreadCount() {
+        if (Utils::getOS() === "linux" or Utils::getOS() === "android") {
+            if (preg_match("/Threads:[ \t]+([0-9]+)/", file_get_contents("/proc/self/status"), $matches) > 0) {
+                return (int)$matches[1];
+            }
+        }
+        //TODO: more OS
+        return count(\pocketmine\ThreadManager::getInstance()->getAll()) + 3; //RakLib + MainLogger + Main Thread
+
     }
 
 }
