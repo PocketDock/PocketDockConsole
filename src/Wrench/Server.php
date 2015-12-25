@@ -86,9 +86,10 @@ class Server extends Configurable
      *                     be ignored
      * @param array $options (optional) See configure
      */
-    public function __construct($uri, array $options = array())
+    public function __construct($uri, array $options = array(), $thread)
     {
         $this->uri = $uri;
+        $this->thread = $thread;
 
         parent::__construct($options);
 
@@ -189,7 +190,7 @@ class Server extends Configurable
     {
         $this->connectionManager->listen();
 
-        while (true) {
+        while ($this->thread->stop !== true) {
             /*
              * If there's nothing changed on any of the sockets, the server
              * will sleep and other processes will have a change to run. Control
