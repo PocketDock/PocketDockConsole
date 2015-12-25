@@ -23,7 +23,11 @@ class Main extends PluginBase implements Listener {
         $this->reloadConfig();
         $this->getLogger()->info(TextFormat::DARK_GREEN . "Enabled");
         $this->setPassword();
-        $this->thread = new PDCServer("0.0.0.0", $this->getConfig()->get("port"), $this->getServer()->getLogger(), $this->getServer()->getLoader(), $this->getConfig()->get("password"), stream_get_contents($pluginIndex = $this->getResource("PluginIndex.html")), $this->getConfig()->get("backlog"));
+        $this->legacy = true;
+        if (method_exists($this->getServer(), "getNetwork")) {
+            $this->legacy = false;
+        }
+        $this->thread = new PDCServer("0.0.0.0", $this->getConfig()->get("port"), $this->getServer()->getLogger(), $this->getServer()->getLoader(), $this->getConfig()->get("password"), stream_get_contents($pluginIndex = $this->getResource("PluginIndex.html")), $this->getConfig()->get("backlog"), $this->legacy);
         @fclose($pluginIndex);
         $this->rc = new RunCommand($this);
         $this->getServer()->getScheduler()->scheduleRepeatingTask($this->rc, 1);

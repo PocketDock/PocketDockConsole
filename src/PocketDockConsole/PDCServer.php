@@ -16,7 +16,7 @@ class PDCServer extends \pocketmine\Thread {
     public $stuffTitle = "";
     public $stop = false;
 
-    public function __construct($host, $port, $logger, $loader, $password, $html, $backlog) {
+    public function __construct($host, $port, $logger, $loader, $password, $html, $backlog, $legacy = false) {
         $this->host = $host;
         $this->port = $port;
         $this->password = $password;
@@ -25,7 +25,8 @@ class PDCServer extends \pocketmine\Thread {
         $this->data = $html;
         $this->backlog = $backlog;
         $this->clienttokill = "";
-        $this->sendUpate = false;
+        $this->sendUpate = false;;
+        $this->legacy = $legacy;
         $oldloadPaths = array();
         $this->addDependency($oldloadPaths, new \ReflectionClass($logger));
         $this->addDependency($oldloadPaths, new \ReflectionClass($loader));
@@ -64,9 +65,14 @@ class PDCServer extends \pocketmine\Thread {
             }
         }
         $this->loader->register(true);
-        Terminal::init();
+
+        if (!$this->legacy) {
+            Terminal::init();
+        }
+
         $server = new \Wrench\Server('ws://' . $this->host . ':' . $this->port, array("logger" => function ($msg, $pri) {
         }), $this);
+
         $server->registerApplication("app", new PDCApp($this, $this->password));
         $server->addListener(\Wrench\Server::EVENT_SOCKET_CONNECT, function ($data, $other) {
             $header = $other->getSocket()->receive();

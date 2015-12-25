@@ -198,7 +198,7 @@
         function getPlugins() {
             $.ajax({
                 type: "GET",
-                url: "http://sleepy-wave-2826.herokuapp.com/plugins",
+                url: "http://pluginsearch.pocketmine.net/plugins",
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 data: "",
@@ -227,7 +227,7 @@
                         minLength: 0,
                         source: function(request, response) {
                             $.ajax({
-                                url: "http://sleepy-wave-2826.herokuapp.com/autocomplete?q=" + request.term,
+                                url: "http://pluginsearch.pocketmine.net/autocomplete?q=" + request.term,
                                 type: "GET",
                                 dataType: "JSON",
                                 success: function(data) {
