@@ -14,7 +14,7 @@ class PDCServer extends \pocketmine\Thread {
     public $stuffToSend = "";
     public $jsonStream = "";
     public $stuffTitle = "";
-    public $loadPaths = array();
+    public $stop = false;
 
     public function __construct($host, $port, $logger, $loader, $password, $html, $backlog) {
         $this->host = $host;
@@ -26,10 +26,10 @@ class PDCServer extends \pocketmine\Thread {
         $this->backlog = $backlog;
         $this->clienttokill = "";
         $this->sendUpate = false;
-        $loadPaths = array();
-        $this->addDependency($loadPaths, new \ReflectionClass($logger));
-        $this->addDependency($loadPaths, new \ReflectionClass($loader));
-        $this->loadPaths = array_reverse($loadPaths);
+        $oldloadPaths = array();
+        $this->addDependency($oldloadPaths, new \ReflectionClass($logger));
+        $this->addDependency($oldloadPaths, new \ReflectionClass($loader));
+        $this->loadPaths = array_reverse($oldloadPaths);
         $this->start(PTHREADS_INHERIT_ALL & ~PTHREADS_INHERIT_CLASSES);
         $this->log("Started SocksServer on " . $this->host . ":" . $this->port);
     }
@@ -53,6 +53,11 @@ class PDCServer extends \pocketmine\Thread {
     }
 
     public function run() {
+        set_exception_handler(function ($ex) {
+            //var_dump($ex);
+            $this->logger->debug($ex->getMessage());
+        });
+
         foreach ($this->loadPaths as $name => $path) {
             if (!class_exists($name, false) and !interface_exists($name, false)) {
                 require ($path);
@@ -60,7 +65,8 @@ class PDCServer extends \pocketmine\Thread {
         }
         $this->loader->register(true);
         Terminal::init();
-        $server = new \Wrench\Server('ws://' . $this->host . ':' . $this->port, array("logger" => function ($msg, $pri) { }));
+        $server = new \Wrench\Server('ws://' . $this->host . ':' . $this->port, array("logger" => function ($msg, $pri) {
+        }), $this);
         $server->registerApplication("app", new PDCApp($this, $this->password));
         $server->addListener(\Wrench\Server::EVENT_SOCKET_CONNECT, function ($data, $other) {
             $header = $other->getSocket()->receive();
@@ -71,7 +77,14 @@ class PDCServer extends \pocketmine\Thread {
                 $other->onData($header);
             }
         });
-        $server->run();
+
+        while($this->stop !== true) {
+            try {
+                $server->run();
+            } catch (\Exception $e) {
+
+            }
+        }
     }
 
     public function isHTTP($data) {
@@ -80,6 +93,10 @@ class PDCServer extends \pocketmine\Thread {
         } else {
             return true;
         }
+    }
+
+    public function stop() {
+        $this->stop = true;
     }
 
     public function log($data) {

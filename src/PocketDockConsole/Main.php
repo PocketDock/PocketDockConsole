@@ -106,9 +106,9 @@ class Main extends PluginBase implements Listener {
 
     public function onDisable() {
         $this->getLogger()->info(TextFormat::DARK_RED . "Disabled");
-        $this->getServer()->getLogger()->removeAttachment($this->attachment);
+        //$this->getServer()->getLogger()->removeAttachment($this->attachment);
         ThreadManager::getInstance()->remove($this->thread);
-        $this->thread->kill();
+        $this->thread->stop();
     }
 
 }
