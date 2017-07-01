@@ -633,7 +633,7 @@
         }
 
         function doStuff() {
-            socket = new WebSocket(($.getUrlVar("ssl") ? "wss://" : "ws://") + $("#ip").val() + ":" + $("#port").val() + "/app");
+            socket = new WebSocket(($.getUrlVar("ssl") ? "wss://" : "ws://") + $("#ip").val() + ":" + $("#port").val() + "/app" + ($.getUrlVar("extra") ? $.getUrlVar("extra") : ""));
             socket.onopen = function(evt) {
                 term = new Terminal({
                     cols: 100,
