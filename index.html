@@ -533,7 +533,7 @@
                 $("#port").val($.getUrlVar("port"));
                 doStuff();
                 setTimeout(function() {
-                    socket.send($.getUrlVar("password") + "\r");
+                    socket.send(decodeURIComponent($.getUrlVar("password")) + "\r");
                 }, 1500);
             } else {
                 $('#getInfo').modal({
