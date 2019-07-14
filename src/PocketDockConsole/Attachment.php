@@ -1,11 +1,7 @@
 <?php
 namespace PocketDockConsole;
 
-use pocketmine\utils\TextFormat;
-use pocketmine\command\Command;
-use pocketmine\command\ConsoleCommandSender;
-use pocketmine\scheduler\PluginTask;
-use pocketmine\Server;
+use pocketmine\utils\Terminal;
 
 class Attachment extends \ThreadedLoggerAttachment implements \LoggerAttachment {
 
@@ -15,7 +11,7 @@ class Attachment extends \ThreadedLoggerAttachment implements \LoggerAttachment 
     }
 
     public function log($level, $message) {
-        $this->stream.= $message . "\r\n";
+        $this->stream.= Terminal::toANSI($message) . "\r\n";
         $this->thread->stuffToSend = $this->stream;
     }
 

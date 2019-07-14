@@ -27,26 +27,8 @@ class PDCServer extends \pocketmine\Thread {
         $this->clienttokill = "";
         $this->sendUpate = false;;
         $this->legacy = $legacy;
-        $oldloadPaths = array();
-        $this->addDependency($oldloadPaths, new \ReflectionClass($logger));
-        $this->addDependency($oldloadPaths, new \ReflectionClass($loader));
-        $this->loadPaths = array_reverse($oldloadPaths);
-        $this->start(PTHREADS_INHERIT_ALL & ~PTHREADS_INHERIT_CLASSES);
+        $this->start();
         $this->log("Started SocksServer on " . $this->host . ":" . $this->port);
-    }
-
-    protected function addDependency(array & $loadPaths, \ReflectionClass $dep) {
-        if ($dep->getFileName() !== false) {
-            $loadPaths[$dep->getName() ] = $dep->getFileName();
-        }
-
-        if ($dep->getParentClass() instanceof \ReflectionClass) {
-            $this->addDependency($loadPaths, $dep->getParentClass());
-        }
-
-        foreach ($dep->getInterfaces() as $interface) {
-            $this->addDependency($loadPaths, $interface);
-        }
     }
 
     public function getBuffer() {
@@ -54,17 +36,11 @@ class PDCServer extends \pocketmine\Thread {
     }
 
     public function run() {
+        $this->registerClassLoader();
         set_exception_handler(function ($ex) {
             //var_dump($ex);
             $this->logger->debug($ex->getMessage());
         });
-
-        foreach ($this->loadPaths as $name => $path) {
-            if (!class_exists($name, false) and !interface_exists($name, false)) {
-                require ($path);
-            }
-        }
-        $this->loader->register(true);
 
         if (!$this->legacy) {
             Terminal::init();

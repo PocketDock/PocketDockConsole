@@ -2,6 +2,7 @@
 namespace PocketDockConsole;
 
 use pocketmine\utils\TextFormat;
+use pocketmine\utils\Terminal;
 
 class PDCApp extends \Wrench\Application\Application {
 
@@ -19,8 +20,8 @@ class PDCApp extends \Wrench\Application\Application {
      */
     public function onConnect($client) {
         $this->thread->log(TextFormat::AQUA . "Connection from: " . $client->getIp());
-        $client->send(TextFormat::toANSI(TextFormat::AQUA . "[PocketDockConsole] " . json_encode(array('info' => $client->getIp() . ' connected')) . "\r\n"));
-        $client->send(TextFormat::toANSI(TextFormat::YELLOW . "[PocketDockConsole] Please authenticate " . $client->getIp() . ". Type your password and press enter.\r\n"));
+        $client->send(Terminal::toANSI(TextFormat::AQUA . "[PocketDockConsole] " . json_encode(array('info' => $client->getIp() . ' connected')) . "\r\n"));
+        $client->send(Terminal::toANSI(TextFormat::YELLOW . "[PocketDockConsole] Please authenticate " . $client->getIp() . ". Type your password and press enter.\r\n"));
         $this->thread->connectedips.= $client->getIp() . ";";
         $this->clients[] = $client;
     }
@@ -99,7 +100,7 @@ class PDCApp extends \Wrench\Application\Application {
             }
         } elseif ($this->tryAuth($payload)) {
             $this->autharray[] = $connection;
-            $connection->send(TextFormat::toANSI(TextFormat::DARK_GREEN . "[PocketDockConsole] Authenticated! Now accepting commands\r\n"));
+            $connection->send(Terminal::toANSI(TextFormat::DARK_GREEN . "[PocketDockConsole] Authenticated! Now accepting commands\r\n"));
             $this->thread->log(TextFormat::DARK_GREEN . "Successful login from: " . $connection->getIp() . "!");
             $stuffArray = explode("\n", $this->thread->stuffToSend);
             $stuffArray = array_reverse($stuffArray);
@@ -115,7 +116,7 @@ class PDCApp extends \Wrench\Application\Application {
             }
             $connection->send($this->thread->stuffTitle);
         } else {
-            $connection->send(TextFormat::toANSI(TextFormat::DARK_RED . "[PocketDockConsole] Failed login attempt, this event will be recorded!\r\n"));
+            $connection->send(Terminal::toANSI(TextFormat::DARK_RED . "[PocketDockConsole] Failed login attempt, this event will be recorded!\r\n"));
             $this->thread->log(TextFormat::DARK_RED . "Failed login attempt from: " . $connection->getIp() . "!");
         }
     }

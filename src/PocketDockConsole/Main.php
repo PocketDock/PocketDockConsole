@@ -13,6 +13,8 @@ use pocketmine\ThreadManager;
 
 class Main extends PluginBase implements Listener {
 
+    public $attachment = null;
+
     public function onLoad() {
         $this->getLogger()->info(TextFormat::WHITE . "Loaded");
     }
@@ -30,7 +32,7 @@ class Main extends PluginBase implements Listener {
         $this->thread = new PDCServer("0.0.0.0", $this->getConfig()->get("port"), $this->getServer()->getLogger(), $this->getServer()->getLoader(), $this->getConfig()->get("password"), stream_get_contents($pluginIndex = $this->getResource("PluginIndex.html")), $this->getConfig()->get("backlog"), $this->legacy);
         @fclose($pluginIndex);
         $this->rc = new RunCommand($this);
-        $this->getServer()->getScheduler()->scheduleRepeatingTask($this->rc, 1);
+        $this->getScheduler()->scheduleRepeatingTask($this->rc, 1);
         $this->lastBufferLine = "";
         $this->attachment = new Attachment($this->thread);
         $this->getServer()->getLogger()->addAttachment($this->attachment);
@@ -46,7 +48,7 @@ class Main extends PluginBase implements Listener {
         }
     }
 
-    public function onCommand(CommandSender $sender, Command $command, $label, array $args) {
+    public function onCommand(CommandSender $sender, Command $command, string $label, array $args): bool {
         switch ($command->getName()) {
             case "consoleclients":
                 if (!$sender->hasPermission("pocketdockconsole.command.consoleclients")) {
@@ -110,8 +112,6 @@ class Main extends PluginBase implements Listener {
 
     public function onDisable() {
         $this->getLogger()->info(TextFormat::DARK_RED . "Disabled");
-        //$this->getServer()->getLogger()->removeAttachment($this->attachment);
-        ThreadManager::getInstance()->remove($this->thread);
         $this->thread->stop();
     }
 
