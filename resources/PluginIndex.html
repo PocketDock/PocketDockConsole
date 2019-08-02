@@ -670,7 +670,7 @@
         }
 
         function doStuff() {
-            socket = new WebSocket("ws://" + window.location.href.replace("http://", "") + "app");
+            socket = new WebSocket(window.location.href.replace(/^http/, "ws") + "app");
             socket.onopen = function(evt) {
                 term = new Terminal({
                     rows: Math.floor(($(window).height() - 301)/ 12),
